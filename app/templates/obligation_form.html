@@ -1,0 +1,66 @@
+{% extends "base_form.html" %}
+
+{% block title %}ثبت بدهی جدید{% endblock %}
+{% block form_title %}ثبت بدهی جدید{% endblock %}
+{% block cancel_url %}/obligations{% endblock %}
+
+{% block form_body %}
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label class="form-label required">مشتری</label>
+        <select name="customer_id" class="form-select" required>
+            <option value="">انتخاب مشتری...</option>
+            {% for customer in customers %}
+            <option value="{{ customer.id }}" {% if obligation and obligation.customer_id == customer.id %}selected{% endif %}>
+                {{ customer.customer_no }} - {{ customer.full_name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label required">پروژه</label>
+        <select name="project_id" class="form-select" required>
+            <option value="">انتخاب پروژه...</option>
+            {% for project in projects %}
+            <option value="{{ project.id }}" {% if obligation and obligation.project_id == project.id %}selected{% endif %}>
+                {{ project.project_code }} - {{ project.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label class="form-label required">نوع بدهی</label>
+        <select name="obligation_type" class="form-select" required>
+            <option value="PROJECT_PLAN" {% if obligation and obligation.obligation_type == 'PROJECT_PLAN' %}selected{% endif %}>پلن پروژه</option>
+            <option value="UNIT_DIFFERENCE" {% if obligation and obligation.obligation_type == 'UNIT_DIFFERENCE' %}selected{% endif %}>مابه‌التفاوت واحد</option>
+            <option value="PENALTY" {% if obligation and obligation.obligation_type == 'PENALTY' %}selected{% endif %}>جریمه</option>
+            <option value="SERVICE_FEE" {% if obligation and obligation.obligation_type == 'SERVICE_FEE' %}selected{% endif %}>هزینه خدمات</option>
+            <option value="OTHER" {% if obligation and obligation.obligation_type == 'OTHER' %}selected{% endif %}>سایر</option>
+        </select>
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label required">مبلغ (ریال)</label>
+        <input type="number" name="amount" class="form-control" required min="1000"
+               value="{{ obligation.amount if obligation else '' }}">
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label class="form-label">تاریخ سررسید</label>
+        <input type="date" name="due_date" class="form-control"
+               value="{{ obligation.due_date if obligation else '' }}">
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label">مبلغ پرداخت‌شده</label>
+        <input type="number" name="paid_amount" class="form-control" min="0"
+               value="{{ obligation.paid_amount if obligation else '0' }}">
+    </div>
+</div>
+<div class="mb-3">
+    <label class="form-label">توضیحات</label>
+    <input type="text" name="description" class="form-control"
+           value="{{ obligation.description if obligation else '' }}">
+</div>
+{% endblock %}

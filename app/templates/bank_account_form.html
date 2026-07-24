@@ -1,0 +1,54 @@
+{% extends "base_form.html" %}
+
+{% block title %}تعریف حساب بانکی{% endblock %}
+{% block form_title %}ایجاد حساب بانکی جدید{% endblock %}
+{% block cancel_url %}/bank-accounts{% endblock %}
+
+{% block form_body %}
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label class="form-label required">بانک</label>
+        <select name="bank_id" class="form-select" required>
+            <option value="">انتخاب بانک...</option>
+            {% for bank in banks %}
+            <option value="{{ bank.id }}" {% if bank_account and bank_account.bank_id == bank.id %}selected{% endif %}>
+                {{ bank.bank_name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label required">شماره حساب</label>
+        <input type="text" name="account_no" class="form-control" required
+               value="{{ bank_account.account_no if bank_account else '' }}">
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label class="form-label">شماره شبا</label>
+        <input type="text" name="sheba" class="form-control"
+               value="{{ bank_account.sheba if bank_account else '' }}">
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label">شماره کارت</label>
+        <input type="text" name="card_no" class="form-control"
+               value="{{ bank_account.card_no if bank_account else '' }}">
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label class="form-label">شعبه</label>
+        <input type="text" name="branch" class="form-control"
+               value="{{ bank_account.branch if bank_account else '' }}">
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label">نام حساب</label>
+        <input type="text" name="account_name" class="form-control"
+               value="{{ bank_account.account_name if bank_account else '' }}">
+    </div>
+</div>
+<div class="mb-3">
+    <label class="form-label">توضیحات</label>
+    <textarea name="description" class="form-control" rows="2">{{ bank_account.description if bank_account else '' }}</textarea>
+</div>
+{% endblock %}

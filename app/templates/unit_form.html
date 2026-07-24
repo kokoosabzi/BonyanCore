@@ -1,0 +1,64 @@
+{% extends "base_form.html" %}
+
+{% block title %}ثبت واحد جدید{% endblock %}
+{% block form_title %}ثبت واحد جدید{% endblock %}
+{% block cancel_url %}/pages/units{% endblock %}
+
+{% block form_body %}
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label class="form-label required">پروژه</label>
+        <select name="project_id" class="form-select" required>
+            <option value="">انتخاب پروژه...</option>
+            {% for project in projects %}
+            <option value="{{ project.id }}" {% if unit and unit.project_id == project.id %}selected{% endif %}>
+                {{ project.project_code }} - {{ project.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label required">کد واحد</label>
+        <input type="text" name="unit_code" class="form-control" required
+               value="{{ unit.unit_code if unit else '' }}">
+        <small class="text-muted">کد یکتا برای واحد</small>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-4 mb-3">
+        <label class="form-label">بلوک</label>
+        <input type="text" name="building" class="form-control"
+               value="{{ unit.building if unit else '' }}">
+    </div>
+    <div class="col-md-4 mb-3">
+        <label class="form-label">طبقه</label>
+        <input type="number" name="floor" class="form-control"
+               value="{{ unit.floor if unit else '' }}">
+    </div>
+    <div class="col-md-4 mb-3">
+        <label class="form-label">شماره واحد</label>
+        <input type="text" name="unit_number" class="form-control"
+               value="{{ unit.unit_number if unit else '' }}">
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label class="form-label">متراژ</label>
+        <input type="number" name="area" class="form-control" step="0.1"
+               value="{{ unit.area if unit else '' }}">
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label">قیمت (ریال)</label>
+        <input type="number" name="price" class="form-control"
+               value="{{ unit.price if unit else '' }}">
+    </div>
+</div>
+<div class="mb-3">
+    <label class="form-label">وضعیت</label>
+    <select name="status" class="form-select">
+        <option value="AVAILABLE" {% if unit and unit.status == 'AVAILABLE' %}selected{% endif %}>موجود</option>
+        <option value="RESERVED" {% if unit and unit.status == 'RESERVED' %}selected{% endif %}>رزرو شده</option>
+        <option value="SOLD" {% if unit and unit.status == 'SOLD' %}selected{% endif %}>فروخته شده</option>
+    </select>
+</div>
+{% endblock %}

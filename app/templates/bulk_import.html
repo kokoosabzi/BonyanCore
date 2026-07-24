@@ -1,0 +1,134 @@
+{% extends "base_form.html" %}
+
+{% block title %}ورود گروهی داده‌ها{% endblock %}
+{% block form_title %}ورود گروهی داده‌ها{% endblock %}
+{% block cancel_url %}/pages{% endblock %}
+
+{% block form_body %}
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i>
+    با استفاده از این بخش می‌توانید داده‌ها را به صورت گروهی وارد سامانه کنید.
+    ابتدا قالب Excel را دانلود کنید، داده‌ها را پر کنید و سپس فایل را آپلود نمایید.
+</div>
+
+<form method="post" action="/bulk-import/upload" enctype="multipart/form-data" id="bulkImportForm">
+    <!-- مرحله 1: تنظیمات -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">مرحله ۱: تنظیمات</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label required">نوع عملیات</label>
+                    <select name="import_type" id="import_type" class="form-select" required>
+                        <option value="">انتخاب کنید...</option>
+                        <option value="DEBIT">بدهکار گروهی</option>
+                        <option value="CREDIT">بستانکار گروهی</option>
+                        <option value="MEMBER">اعضای پروژه</option>
+                    </select>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label required">پروژه</label>
+                    <select name="project_id" class="form-select" required>
+                        <option value="">انتخاب پروژه...</option>
+                        {% for project in projects %}
+                        <option value="{{ project.id }}">{{ project.project_code }} - {{ project.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label required">تاریخ سند</label>
+                    <input type="date" name="document_date" class="form-control" required>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label required">شرح سند</label>
+                    <input type="text" name="document_description" class="form-control" required
+                           placeholder="مثال: پلن مالی پروژه والفجر">
+                </div>
+                <div class="col-md-3 mb-3" id="debit_type_container" style="display:none;">
+                    <label class="form-label required">نوع بدهی</label>
+                    <select name="debit_type" class="form-select">
+                        <option value="PROJECT_PLAN">پلن پروژه</option>
+                        <option value="UNIT_DIFFERENCE">مابه‌التفاوت</option>
+                        <option value="PENALTY">جریمه</option>
+                        <option value="SERVICE_FEE">هزینه خدمات</option>
+                        <option value="OTHER">سایر</option>
+                    </select>
+                </div>
+                <div class="col-md-3 mb-3" id="credit_type_container" style="display:none;">
+                    <label class="form-label required">نوع بستانکاری</label>
+                    <select name="credit_type" class="form-select">
+                        <option value="LOAN">وام</option>
+                        <option value="SUBSIDY">سوبسید</option>
+                        <option value="DISCOUNT">تخفیف</option>
+                        <option value="CHEQUE">چک</option>
+                        <option value="OTHER">سایر</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- مرحله 2: دانلود قالب و آپلود -->
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">مرحله ۲: دانلود قالب و آپلود فایل</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <button type="button" id="downloadTemplateBtn" class="btn btn-outline-primary w-100" disabled>
+                        <i class="bi bi-download"></i> دانلود قالب Excel
+                    </button>
+                    <small class="text-muted d-block mt-2">پس از پر کردن داده‌ها، فایل را آپلود کنید.</small>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">انتخاب فایل Excel</label>
+                        <input type="file" name="file" class="form-control" accept=".xlsx,.xls" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-upload"></i> آپلود و پیش‌نمایش
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script>
+    document.getElementById('import_type').addEventListener('change', function() {
+        const value = this.value;
+        const debitContainer = document.getElementById('debit_type_container');
+        const creditContainer = document.getElementById('credit_type_container');
+        const downloadBtn = document.getElementById('downloadTemplateBtn');
+        
+        debitContainer.style.display = 'none';
+        creditContainer.style.display = 'none';
+        
+        if (value === 'DEBIT') {
+            debitContainer.style.display = 'block';
+            downloadBtn.disabled = false;
+            downloadBtn.onclick = function() {
+                window.location.href = '/bulk-import/template/DEBIT';
+            };
+        } else if (value === 'CREDIT') {
+            creditContainer.style.display = 'block';
+            downloadBtn.disabled = false;
+            downloadBtn.onclick = function() {
+                window.location.href = '/bulk-import/template/CREDIT';
+            };
+        } else if (value === 'MEMBER') {
+            downloadBtn.disabled = false;
+            downloadBtn.onclick = function() {
+                window.location.href = '/bulk-import/template/MEMBER';
+            };
+        } else {
+            downloadBtn.disabled = true;
+        }
+    });
+</script>
+{% endblock %}

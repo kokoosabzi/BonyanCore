@@ -1,0 +1,40 @@
+# ۱. نصب وابستگی‌ها
+pip install -r requirements.txt
+
+# ۲. بررسی دیتابیس
+docker ps
+docker start bonyan-db
+
+# ۳. تست اتصال دیتابیس
+python test_db.py
+
+# ۴. ایجاد Migration
+alembic revision --autogenerate -m "Initial migration - all tables"
+alembic upgrade head
+
+# ۵. اجرا
+uvicorn main:app --reload --host 127.0.0.1 --port 8000
+
+روش نهایی
+
+# ۱. نصب وابستگی‌ها
+pip install -r requirements.txt
+
+# ۲. بررسی دیتابیس
+docker start bonyan-db
+
+# ۳. تست اتصال
+python test_db.py
+
+# ۴. ایجاد و اعمال Migration
+alembic revision --autogenerate -m "Initial migration - all tables"
+alembic upgrade head
+
+# ۵. اجرا
+uvicorn main:app --reload --host 127.0.0.1 --port 8000
+
+# ۶. دسترسی به فرم‌ها
+# http://127.0.0.1:8000/pages
+# http://127.0.0.1:8000/pages/projects
+# http://127.0.0.1:8000/pages/customers
+# http://127.0.0.1:8000/pages/receipts

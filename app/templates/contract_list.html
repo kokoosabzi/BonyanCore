@@ -1,0 +1,55 @@
+{% extends "base_form.html" %}
+
+{% block title %}لیست قراردادها{% endblock %}
+{% block form_title %}لیست قراردادها{% endblock %}
+{% block cancel_url %}/pages{% endblock %}
+
+{% block form_body %}
+<div class="d-flex justify-content-between mb-3">
+    <a href="/pages/contracts/final/create" class="btn btn-success">➕ قرارداد نهایی جدید</a>
+</div>
+
+<table class="table table-striped table-hover">
+    <thead>
+        <tr>
+            <th>شماره قرارداد</th>
+            <th>عضو</th>
+            <th>نوع</th>
+            <th>تاریخ شروع</th>
+            <th>وضعیت</th>
+            <th>عملیات</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for contract in contracts %}
+        <tr>
+            <td><strong>{{ contract.contract_no }}</strong></td>
+            <td>{{ contract.project_member.customer.full_name if contract.project_member and contract.project_member.customer else '-' }}</td>
+            <td>
+                {% if contract.contract_type == 'MEMBERSHIP' %}
+                <span class="badge bg-info">عضویت</span>
+                {% else %}
+                <span class="badge bg-primary">نهایی واحد</span>
+                {% endif %}
+            </td>
+            <td>{{ contract.start_date }}</td>
+            <td>
+                {% if contract.status == 'ACTIVE' %}
+                <span class="badge bg-success">فعال</span>
+                {% elif contract.status == 'DRAFT' %}
+                <span class="badge bg-warning">پیش‌نویس</span>
+                {% elif contract.status == 'COMPLETED' %}
+                <span class="badge bg-secondary">تکمیل شده</span>
+                {% else %}
+                <span class="badge bg-danger">لغو شده</span>
+                {% endif %}
+            </td>
+            <td>
+                <a href="/pages/contracts/{{ contract.id }}/edit" class="btn btn-sm btn-primary">ویرایش</a>
+                <a href="/pages/contracts/{{ contract.id }}/delete" class="btn btn-sm btn-danger">حذف</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "base_form.html" %}
+
+{% block title %}ویرایش قرارداد{% endblock %}
+{% block form_title %}ویرایش قرارداد{% endblock %}
+{% block cancel_url %}/pages/contracts{% endblock %}
+
+{% block form_body %}
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label class="form-label">شماره قرارداد</label>
+        <input type="text" class="form-control" value="{{ contract.contract_no if contract else '' }}" disabled>
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label">نوع قرارداد</label>
+        <input type="text" class="form-control" value="{{ contract.contract_type if contract else '' }}" disabled>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label class="form-label">وضعیت</label>
+        <select name="status" class="form-select">
+            <option value="DRAFT" {% if contract and contract.status == 'DRAFT' %}selected{% endif %}>پیش‌نویس</option>
+            <option value="ACTIVE" {% if contract and contract.status == 'ACTIVE' %}selected{% endif %}>فعال</option>
+            <option value="COMPLETED" {% if contract and contract.status == 'COMPLETED' %}selected{% endif %}>تکمیل شده</option>
+            <option value="CANCELLED" {% if contract and contract.status == 'CANCELLED' %}selected{% endif %}>لغو شده</option>
+        </select>
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label">تاریخ پایان</label>
+        <input type="date" name="end_date" class="form-control"
+               value="{{ contract.end_date if contract else '' }}">
+    </div>
+</div>
+<div class="mb-3">
+    <label class="form-label">توضیحات</label>
+    <textarea name="description" class="form-control" rows="2">{{ contract.description if contract else '' }}</textarea>
+</div>
+{% endblock %}

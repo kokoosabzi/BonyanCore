@@ -1,0 +1,75 @@
+{% extends "base_form.html" %}
+
+{% block title %}ثبت قرارداد نهایی واحد{% endblock %}
+{% block form_title %}قرارداد نهایی واحد{% endblock %}
+{% block cancel_url %}/pages/contracts{% endblock %}
+
+{% block form_body %}
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label class="form-label required">عضویت</label>
+        <select name="project_member_id" class="form-select" required>
+            <option value="">انتخاب عضویت...</option>
+            {% for member in members %}
+            <option value="{{ member.id }}" {% if contract and contract.project_member_id == member.id %}selected{% endif %}>
+                {{ member.customer.full_name }} - {{ member.project.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label required">واحد</label>
+        <select name="unit_id" class="form-select" required>
+            <option value="">انتخاب واحد...</option>
+            {% for unit in units %}
+            <option value="{{ unit.id }}" {% if contract and contract.unit_id == unit.id %}selected{% endif %}>
+                {{ unit.unit_code }} - بلوک {{ unit.building or '-' }} - طبقه {{ unit.floor or '-' }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label class="form-label required">تاریخ شروع</label>
+        <input type="date" name="start_date" class="form-control" required
+               value="{{ contract.start_date if contract else '' }}">
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label">تاریخ پایان</label>
+        <input type="date" name="end_date" class="form-control"
+               value="{{ contract.end_date if contract else '' }}">
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label class="form-label required">قیمت نهایی (ریال)</label>
+        <input type="number" name="final_price" class="form-control" required min="1000000"
+               value="{{ contract.final_price if contract else '' }}">
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label">وضعیت</label>
+        <select name="status" class="form-select">
+            <option value="DRAFT" {% if contract and contract.status == 'DRAFT' %}selected{% endif %}>پیش‌نویس</option>
+            <option value="ACTIVE" {% if contract and contract.status == 'ACTIVE' %}selected{% endif %}>فعال</option>
+            <option value="COMPLETED" {% if contract and contract.status == 'COMPLETED' %}selected{% endif %}>تکمیل شده</option>
+        </select>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label class="form-label">امضاکننده</label>
+        <input type="text" name="signed_by" class="form-control"
+               value="{{ contract.signed_by if contract else '' }}">
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label">تاریخ امضا</label>
+        <input type="date" name="signed_date" class="form-control"
+               value="{{ contract.signed_date if contract else '' }}">
+    </div>
+</div>
+<div class="mb-3">
+    <label class="form-label">توضیحات</label>
+    <textarea name="description" class="form-control" rows="2">{{ contract.description if contract else '' }}</textarea>
+</div>
+{% endblock %}

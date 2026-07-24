@@ -1,0 +1,52 @@
+{% extends "base_form.html" %}
+
+{% block title %}تاریخچه ورود گروهی{% endblock %}
+{% block form_title %}تاریخچه عملیات ورود گروهی{% endblock %}
+{% block cancel_url %}/bulk-import{% endblock %}
+
+{% block form_body %}
+<div class="table-responsive">
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>تاریخ</th>
+                <th>نوع عملیات</th>
+                <th>پروژه</th>
+                <th>شماره سند</th>
+                <th>تعداد</th>
+                <th>مبلغ کل</th>
+                <th>وضعیت</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs %}
+            <tr>
+                <td>{{ log.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>
+                    {% if log.import_type == 'DEBIT' %}
+                    <span class="badge bg-danger">بدهکار</span>
+                    {% elif log.import_type == 'CREDIT' %}
+                    <span class="badge bg-success">بستانکار</span>
+                    {% else %}
+                    <span class="badge bg-info">عضو</span>
+                    {% endif %}
+                </td>
+                <td>{{ log.project.name if log.project else '-' }}</td>
+                <td><code>{{ log.journal_no or '-' }}</code></td>
+                <td>{{ log.total_rows }}</td>
+                <td>{{ "{:,.0f}".format(log.total_amount) }}</td>
+                <td>
+                    {% if log.status == 'SUCCESS' %}
+                    <span class="badge bg-success">موفق</span>
+                    {% elif log.status == 'FAILED' %}
+                    <span class="badge bg-danger">ناموفق</span>
+                    {% else %}
+                    <span class="badge bg-warning">در انتظار</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

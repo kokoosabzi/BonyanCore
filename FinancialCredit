@@ -1,0 +1,1 @@
+    def update(db: Session, credit_id: int, data: FinancialCreditUpdate) - | None:

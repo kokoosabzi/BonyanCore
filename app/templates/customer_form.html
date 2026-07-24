@@ -1,0 +1,62 @@
+{% extends "base_form.html" %}
+
+{% block title %}ایجاد مشتری جدید{% endblock %}
+{% block form_title %}ایجاد مشتری جدید{% endblock %}
+{% block cancel_url %}/customers{% endblock %}
+
+{% block form_body %}
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label class="form-label required">شماره مشتری</label>
+        <input type="text" name="customer_no" class="form-control" 
+               placeholder="مثال: 010001" maxlength="6" required 
+               value="{{ customer.customer_no if customer else '' }}">
+        <small class="text-muted">۶ رقم عددی، دو رقم اول کد پروژه</small>
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label required">نام کامل</label>
+        <input type="text" name="full_name" class="form-control" required
+               value="{{ customer.full_name if customer else '' }}">
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label class="form-label">کد ملی</label>
+        <input type="text" name="national_code" class="form-control" maxlength="10"
+               value="{{ customer.national_code if customer else '' }}">
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label">تاریخ تولد</label>
+        <input type="date" name="birth_date" class="form-control"
+               value="{{ customer.birth_date if customer else '' }}">
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label class="form-label">موبایل</label>
+        <input type="text" name="mobile" class="form-control" maxlength="11"
+               value="{{ customer.mobile if customer else '' }}">
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label">تلفن</label>
+        <input type="text" name="phone" class="form-control"
+               value="{{ customer.phone if customer else '' }}">
+    </div>
+</div>
+<div class="mb-3">
+    <label class="form-label">آدرس</label>
+    <textarea name="address" class="form-control" rows="2">{{ customer.address if customer else '' }}</textarea>
+</div>
+<div class="mb-3">
+    <label class="form-label">شغل</label>
+    <input type="text" name="job" class="form-control"
+           value="{{ customer.job if customer else '' }}">
+</div>
+<div class="mb-3">
+    <label class="form-label">وضعیت</label>
+    <select name="status" class="form-select">
+        <option value="ACTIVE" {% if customer and customer.status == 'ACTIVE' %}selected{% endif %}>فعال</option>
+        <option value="INACTIVE" {% if customer and customer.status == 'INACTIVE' }}selected{% endif %}>غیرفعال</option>
+    </select>
+</div>
+{% endblock %}

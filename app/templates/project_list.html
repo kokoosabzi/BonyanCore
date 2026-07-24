@@ -1,0 +1,47 @@
+{% extends "base_form.html" %}
+
+{% block title %}لیست پروژه‌ها{% endblock %}
+{% block form_title %}لیست پروژه‌ها{% endblock %}
+{% block cancel_url %}/pages{% endblock %}
+
+{% block form_body %}
+<div class="d-flex justify-content-between mb-3">
+    <a href="/pages/projects/create" class="btn btn-success">➕ پروژه جدید</a>
+</div>
+
+<table class="table table-striped table-hover">
+    <thead>
+        <tr>
+            <th>کد</th>
+            <th>نام</th>
+            <th>تاریخ شروع</th>
+            <th>وضعیت</th>
+            <th>تعداد واحد</th>
+            <th>عملیات</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for project in projects %}
+        <tr>
+            <td><strong>{{ project.project_code }}</strong></td>
+            <td>{{ project.name }}</td>
+            <td>{{ project.start_date }}</td>
+            <td>
+                {% if project.status == 'ACTIVE' %}
+                <span class="badge bg-success">فعال</span>
+                {% elif project.status == 'COMPLETED' %}
+                <span class="badge bg-secondary">تکمیل شده</span>
+                {% else %}
+                <span class="badge bg-warning">متوقف</span>
+                {% endif %}
+            </td>
+            <td>{{ project.total_units }}</td>
+            <td>
+                <a href="/pages/projects/{{ project.id }}/edit" class="btn btn-sm btn-primary">ویرایش</a>
+                <a href="/pages/projects/{{ project.id }}/delete" class="btn btn-sm btn-danger">حذف</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

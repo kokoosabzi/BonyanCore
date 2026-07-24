@@ -1,0 +1,46 @@
+{% extends "base_form.html" %}
+
+{% block title %}ایجاد پروژه جدید{% endblock %}
+{% block form_title %}ایجاد پروژه جدید{% endblock %}
+{% block cancel_url %}/projects{% endblock %}
+
+{% block form_body %}
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label class="form-label required">کد پروژه</label>
+        <input type="text" name="project_code" class="form-control" 
+               placeholder="مثال: 01" maxlength="2" required 
+               value="{{ project.project_code if project else '' }}">
+        <small class="text-muted">دو رقم عددی، غیرقابل تغییر</small>
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label required">نام پروژه</label>
+        <input type="text" name="name" class="form-control" required 
+               value="{{ project.name if project else '' }}">
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label class="form-label required">تاریخ شروع</label>
+        <input type="date" name="start_date" class="form-control" required
+               value="{{ project.start_date if project else '' }}">
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label">تعداد واحد</label>
+        <input type="number" name="total_units" class="form-control" min="0"
+               value="{{ project.total_units if project else '0' }}">
+    </div>
+</div>
+<div class="mb-3">
+    <label class="form-label">وضعیت</label>
+    <select name="status" class="form-select">
+        <option value="ACTIVE" {% if project and project.status == 'ACTIVE' %}selected{% endif %}>فعال</option>
+        <option value="COMPLETED" {% if project and project.status == 'COMPLETED' %}selected{% endif %}>تکمیل شده</option>
+        <option value="SUSPENDED" {% if project and project.status == 'SUSPENDED' %}selected{% endif %}>متوقف</option>
+    </select>
+</div>
+<div class="mb-3">
+    <label class="form-label">توضیحات</label>
+    <textarea name="description" class="form-control" rows="3">{{ project.description if project else '' }}</textarea>
+</div>
+{% endblock %}

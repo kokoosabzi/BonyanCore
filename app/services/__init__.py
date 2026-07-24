@@ -1,0 +1,7 @@
+from app.services.customer_service import CustomerService
+from app.services.project_service import ProjectService
+from app.services.project_member_service import ProjectMemberService
+from app.services.contract_service import ContractService
+from app.services.financial_obligation_service import FinancialObligationService
+from app.services.financial_credit_service import FinancialCreditService
+from app.services.document_sequence_service import DocumentSequenceService

@@ -1,0 +1,83 @@
+{% extends "base_form.html" %}
+
+{% block title %}ثبت فیش جدید{% endblock %}
+{% block form_title %}ثبت فیش جدید{% endblock %}
+{% block cancel_url %}/receipts{% endblock %}
+
+{% block form_body %}
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label class="form-label required">مشتری</label>
+        <select name="customer_id" class="form-select" required>
+            <option value="">انتخاب مشتری...</option>
+            {% for customer in customers %}
+            <option value="{{ customer.id }}" {% if receipt and receipt.customer_id == customer.id %}selected{% endif %}>
+                {{ customer.customer_no }} - {{ customer.full_name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label required">پروژه</label>
+        <select name="project_id" class="form-select" required>
+            <option value="">انتخاب پروژه...</option>
+            {% for project in projects %}
+            <option value="{{ project.id }}" {% if receipt and receipt.project_id == project.id %}selected{% endif %}>
+                {{ project.project_code }} - {{ project.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label class="form-label required">مبلغ (ریال)</label>
+        <input type="number" name="amount" class="form-control" required min="1000"
+               value="{{ receipt.amount if receipt else '' }}">
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label required">تاریخ فیش</label>
+        <input type="date" name="receipt_date" class="form-control" required
+               value="{{ receipt.receipt_date if receipt else '' }}">
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label class="form-label required">روش پرداخت</label>
+        <select name="payment_method" class="form-select" required>
+            <option value="CASH" {% if receipt and receipt.payment_method == 'CASH' %}selected{% endif %}>نقد</option>
+            <option value="CHEQUE" {% if receipt and receipt.payment_method == 'CHEQUE' %}selected{% endif %}>چک</option>
+            <option value="TRANSFER" {% if receipt and receipt.payment_method == 'TRANSFER' %}selected{% endif %}>انتقال بانکی</option>
+            <option value="POS" {% if receipt and receipt.payment_method == 'POS' %}selected{% endif %}>کارتخوان</option>
+        </select>
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label">حساب بانکی</label>
+        <select name="bank_account_id" class="form-select">
+            <option value="">انتخاب حساب...</option>
+            {% for account in bank_accounts %}
+            <option value="{{ account.id }}" {% if receipt and receipt.bank_account_id == account.id %}selected{% endif %}>
+                {{ account.account_no }} - {{ account.bank_name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label class="form-label">شماره چک</label>
+        <input type="text" name="cheque_no" class="form-control"
+               value="{{ receipt.cheque_no if receipt else '' }}">
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label">تاریخ سررسید چک</label>
+        <input type="date" name="cheque_due_date" class="form-control"
+               value="{{ receipt.cheque_due_date if receipt else '' }}">
+    </div>
+</div>
+<div class="mb-3">
+    <label class="form-label">شرح (بابت)</label>
+    <input type="text" name="description" class="form-control"
+           value="{{ receipt.description if receipt else '' }}">
+</div>
+{% endblock %}

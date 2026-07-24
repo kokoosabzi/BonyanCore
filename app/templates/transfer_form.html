@@ -1,0 +1,49 @@
+{% extends "base_form.html" %}
+
+{% block title %}انتقال بین حساب‌ها{% endblock %}
+{% block form_title %}ثبت انتقال جدید{% endblock %}
+{% block cancel_url %}/transfers{% endblock %}
+
+{% block form_body %}
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label class="form-label required">از حساب</label>
+        <select name="from_account_id" class="form-select" required>
+            <option value="">انتخاب حساب مبدأ...</option>
+            {% for account in bank_accounts %}
+            <option value="{{ account.id }}" {% if transfer and transfer.from_account_id == account.id %}selected{% endif %}>
+                {{ account.account_no }} - {{ account.bank_name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label required">به حساب</label>
+        <select name="to_account_id" class="form-select" required>
+            <option value="">انتخاب حساب مقصد...</option>
+            {% for account in bank_accounts %}
+            <option value="{{ account.id }}" {% if transfer and transfer.to_account_id == account.id %}selected{% endif %}>
+                {{ account.account_no }} - {{ account.bank_name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label class="form-label required">مبلغ (ریال)</label>
+        <input type="number" name="amount" class="form-control" required min="1000"
+               value="{{ transfer.amount if transfer else '' }}">
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label required">تاریخ انتقال</label>
+        <input type="date" name="transfer_date" class="form-control" required
+               value="{{ transfer.transfer_date if transfer else '' }}">
+    </div>
+</div>
+<div class="mb-3">
+    <label class="form-label">توضیحات</label>
+    <input type="text" name="description" class="form-control"
+           value="{{ transfer.description if transfer else '' }}">
+</div>
+{% endblock %}

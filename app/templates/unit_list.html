@@ -1,0 +1,51 @@
+{% extends "base_form.html" %}
+
+{% block title %}لیست واحدها{% endblock %}
+{% block form_title %}لیست واحدهای ساختمانی{% endblock %}
+{% block cancel_url %}/pages{% endblock %}
+
+{% block form_body %}
+<div class="d-flex justify-content-between mb-3">
+    <a href="/pages/units/create" class="btn btn-success">➕ واحد جدید</a>
+</div>
+
+<table class="table table-striped table-hover">
+    <thead>
+        <tr>
+            <th>کد واحد</th>
+            <th>پروژه</th>
+            <th>بلوک</th>
+            <th>طبقه</th>
+            <th>متراژ</th>
+            <th>قیمت</th>
+            <th>وضعیت</th>
+            <th>عملیات</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for unit in units %}
+        <tr>
+            <td><strong>{{ unit.unit_code }}</strong></td>
+            <td>{{ unit.project.name }}</td>
+            <td>{{ unit.building or '-' }}</td>
+            <td>{{ unit.floor or '-' }}</td>
+            <td>{{ unit.area or '-' }}</td>
+            <td>{{ "{:,.0f}".format(unit.price) if unit.price else '-' }}</td>
+            <td>
+                {% if unit.status == 'AVAILABLE' %}
+                <span class="badge bg-success">موجود</span>
+                {% elif unit.status == 'RESERVED' %}
+                <span class="badge bg-warning">رزرو</span>
+                {% else %}
+                <span class="badge bg-secondary">فروخته شده</span>
+                {% endif %}
+            </td>
+            <td>
+                <a href="/pages/units/{{ unit.id }}/edit" class="btn btn-sm btn-primary">ویرایش</a>
+                <a href="/pages/units/{{ unit.id }}/delete" class="btn btn-sm btn-danger">حذف</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

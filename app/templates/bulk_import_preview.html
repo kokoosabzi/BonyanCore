@@ -1,0 +1,88 @@
+{% extends "base_form.html" %}
+
+{% block title %}پیش‌نمایش داده‌ها{% endblock %}
+{% block form_title %}پیش‌نمایش داده‌های وارد شده{% endblock %}
+{% block cancel_url %}/bulk-import{% endblock %}
+
+{% block form_body %}
+{% if errors or error_message %}
+<div class="alert alert-danger">
+    <h5>⚠️ خطا در پردازش</h5>
+    <ul>
+        {% for error in errors %}
+        <li>{{ error }}</li>
+        {% endfor %}
+        {% if error_message %}
+        <li>{{ error_message }}</li>
+        {% endif %}
+    </ul>
+    <a href="/bulk-import" class="btn btn-secondary mt-2">بازگشت</a>
+</div>
+{% else %}
+
+<div class="alert alert-success">
+    <i class="bi bi-check-circle"></i>
+    {{ total_rows }} ردیف با موفقیت بارگذاری شد.
+    جمع کل: <strong>{{ "{:,.0f}".format(total_amount) }}</strong> ریال
+</div>
+
+<form method="post" action="/bulk-import/save" id="previewForm">
+    <input type="hidden" name="import_type" value="{{ import_type }}">
+    <input type="hidden" name="project_id" value="{{ project_id }}">
+    <input type="hidden" name="document_date" value="{{ document_date }}">
+    <input type="hidden" name="document_description" value="{{ document_description }}">
+    <input type="hidden" name="debit_type" value="{{ debit_type }}">
+    <input type="hidden" name="credit_type" value="{{ credit_type }}">
+    <input type="hidden" name="row_count" value="{{ rows|length }}">
+
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>شماره عضو</th>
+                    <th>نام کامل</th>
+                    <th>مبلغ (ریال)</th>
+                    <th>شرح</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td>
+                        <input type="hidden" name="rows[{{ loop.index0 }}][member_no]" value="{{ row.member_no }}">
+                        <strong>{{ row.member_no }}</strong>
+                    </td>
+                    <td>
+                        <input type="hidden" name="rows[{{ loop.index0 }}][full_name]" value="{{ row.full_name or '' }}">
+                        {{ row.full_name or '-' }}
+                    </td>
+                    <td>
+                        <input type="hidden" name="rows[{{ loop.index0 }}][amount]" value="{{ row.amount or 0 }}">
+                        {{ "{:,.0f}".format(row.amount) if row.amount else '۰' }}
+                    </td>
+                    <td>
+                        <input type="hidden" name="rows[{{ loop.index0 }}][description]" value="{{ row.description or '' }}">
+                        {{ row.description or '-' }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="table-info">
+                    <th colspan="2">جمع کل</th>
+                    <th>{{ "{:,.0f}".format(total_amount) }}</th>
+                    <th></th>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <div class="d-flex justify-content-between mt-4">
+        <a href="/bulk-import" class="btn btn-secondary">بازگشت</a>
+        <button type="submit" class="btn btn-success">
+            <i class="bi bi-check-lg"></i> تأیید و ذخیره
+        </button>
+    </div>
+</form>
+{% endif %}
+{% endblock %}

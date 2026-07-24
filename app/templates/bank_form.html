@@ -1,0 +1,24 @@
+{% extends "base_form.html" %}
+
+{% block title %}تعریف بانک{% endblock %}
+{% block form_title %}ایجاد بانک جدید{% endblock %}
+{% block cancel_url %}/banks{% endblock %}
+
+{% block form_body %}
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label class="form-label required">نام بانک</label>
+        <input type="text" name="bank_name" class="form-control" required
+               value="{{ bank.bank_name if bank else '' }}">
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label">کد بانک</label>
+        <input type="text" name="bank_code" class="form-control"
+               value="{{ bank.bank_code if bank else '' }}">
+    </div>
+</div>
+<div class="mb-3">
+    <label class="form-label">توضیحات</label>
+    <textarea name="description" class="form-control" rows="2">{{ bank.description if bank else '' }}</textarea>
+</div>
+{% endblock %}

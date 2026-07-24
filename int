@@ -1,0 +1,1 @@
+    def get_net_balance(db: Session, customer_id: int) -

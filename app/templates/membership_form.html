@@ -1,0 +1,50 @@
+{% extends "base_form.html" %}
+
+{% block title %}ثبت عضویت در پروژه{% endblock %}
+{% block form_title %}ثبت عضویت جدید{% endblock %}
+{% block cancel_url %}/memberships{% endblock %}
+
+{% block form_body %}
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label class="form-label required">مشتری</label>
+        <select name="customer_id" class="form-select" required>
+            <option value="">انتخاب مشتری...</option>
+            {% for customer in customers %}
+            <option value="{{ customer.id }}" {% if membership and membership.customer_id == customer.id %}selected{% endif %}>
+                {{ customer.customer_no }} - {{ customer.full_name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label required">پروژه</label>
+        <select name="project_id" class="form-select" required>
+            <option value="">انتخاب پروژه...</option>
+            {% for project in projects %}
+            <option value="{{ project.id }}" {% if membership and membership.project_id == project.id %}selected{% endif %}>
+                {{ project.project_code }} - {{ project.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label class="form-label required">تاریخ عضویت</label>
+        <input type="date" name="join_date" class="form-control" required
+               value="{{ membership.join_date if membership else '' }}">
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label">وضعیت</label>
+        <select name="status" class="form-select">
+            <option value="ACTIVE" {% if membership and membership.status == 'ACTIVE' %}selected{% endif %}>فعال</option>
+            <option value="INACTIVE" {% if membership and membership.status == 'INACTIVE' %}selected{% endif %}>غیرفعال</option>
+        </select>
+    </div>
+</div>
+<div class="mb-3">
+    <label class="form-label">یادداشت</label>
+    <textarea name="notes" class="form-control" rows="2">{{ membership.notes if membership else '' }}</textarea>
+</div>
+{% endblock %}
