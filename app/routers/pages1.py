@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Form, status, Query
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from typing import Optional
 
@@ -15,12 +14,13 @@ from app.services.bank_service import BankService
 from app.services.bank_account_service import BankAccountService
 from app.services.unit_service import UnitService
 from app.services.receipt_service import ReceiptService
+from app.core.templates import create_templates
 from app.models.project_member import ProjectMember
 from app.models.receipt import Receipt
 from app.models.unit import Unit
 
 router = APIRouter(prefix="/pages", tags=["Pages"])
-templates = Jinja2Templates(directory="app/templates")
+templates = create_templates()
 
 # ============================================================
 # صفحه اصلی (داشبورد)

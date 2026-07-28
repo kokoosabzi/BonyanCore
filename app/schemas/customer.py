@@ -1,12 +1,13 @@
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from datetime import date, datetime
+from app.schemas.jalali import JalaliDateInput, OptionalJalaliDateInput
 
 class CustomerBase(BaseModel):
     customer_no: str = Field(..., min_length=6, max_length=6, description="شماره مشتری ۶ رقمی")
     full_name: str = Field(..., max_length=200)
     national_code: Optional[str] = Field(None, max_length=10)
-    birth_date: Optional[date] = None
+    birth_date: OptionalJalaliDateInput = None
     mobile: Optional[str] = Field(None, max_length=11)
     phone: Optional[str] = Field(None, max_length=20)
     address: Optional[str] = None
@@ -34,7 +35,7 @@ class CustomerCreate(CustomerBase):
 class CustomerUpdate(BaseModel):
     full_name: Optional[str] = Field(None, max_length=200)
     national_code: Optional[str] = Field(None, max_length=10)
-    birth_date: Optional[date] = None
+    birth_date: OptionalJalaliDateInput = None
     mobile: Optional[str] = Field(None, max_length=11)
     phone: Optional[str] = Field(None, max_length=20)
     address: Optional[str] = None

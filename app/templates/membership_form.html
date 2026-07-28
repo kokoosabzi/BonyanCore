@@ -2,7 +2,7 @@
 
 {% block title %}ثبت عضویت در پروژه{% endblock %}
 {% block form_title %}ثبت عضویت جدید{% endblock %}
-{% block cancel_url %}/memberships{% endblock %}
+{% block cancel_url %}/pages/memberships{% endblock %}
 
 {% block form_body %}
 <div class="row">
@@ -32,8 +32,8 @@
 <div class="row">
     <div class="col-md-6 mb-3">
         <label class="form-label required">تاریخ عضویت</label>
-        <input type="date" name="join_date" class="form-control" required
-               value="{{ membership.join_date if membership else '' }}">
+        <input type="text" name="join_date" class="form-control jalali-date-picker" placeholder="1404/05/03" required
+               value="{{ membership.join_date|jalali if membership else '' }}">
     </div>
     <div class="col-md-6 mb-3">
         <label class="form-label">وضعیت</label>

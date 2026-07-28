@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import date, datetime
+from app.schemas.jalali import JalaliDateInput, OptionalJalaliDateInput
 from enum import Enum
 
 class ObligationType(str, Enum):
@@ -25,7 +26,7 @@ class FinancialObligationBase(BaseModel):
     amount: int = Field(..., gt=0, description="مبلغ بدهی")
     paid_amount: Optional[int] = 0
     status: Optional[ObligationStatus] = ObligationStatus.PENDING
-    due_date: Optional[date] = None
+    due_date: OptionalJalaliDateInput = None
     description: Optional[str] = None
     reference_id: Optional[str] = None
 
@@ -35,7 +36,7 @@ class FinancialObligationCreate(FinancialObligationBase):
 class FinancialObligationUpdate(BaseModel):
     paid_amount: Optional[int] = None
     status: Optional[ObligationStatus] = None
-    due_date: Optional[date] = None
+    due_date: OptionalJalaliDateInput = None
     description: Optional[str] = None
 
 class FinancialObligationResponse(FinancialObligationBase):

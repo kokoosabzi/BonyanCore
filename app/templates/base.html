@@ -773,6 +773,26 @@
             }
         });
 
+        // یکسان‌سازی ورودی‌های تاریخ جلالی: اعداد فارسی/عربی و جداکننده‌ها به قالب 1404/05/03 تبدیل می‌شوند.
+        const persianDateDigits = '۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩';
+        const latinDateDigits = '01234567890123456789';
+        function normalizeJalaliInput(value) {
+            return (value || '')
+                .trim()
+                .replace(/[۰-۹٠-٩]/g, function(ch) {
+                    return latinDateDigits[persianDateDigits.indexOf(ch)] || ch;
+                })
+                .replace(/[.-]/g, '/');
+        }
+        document.querySelectorAll('.jalali-date-picker').forEach(function(input) {
+            input.setAttribute('inputmode', 'numeric');
+            input.setAttribute('dir', 'ltr');
+            input.setAttribute('pattern', '[0-9]{4}/[0-9]{1,2}/[0-9]{1,2}');
+            input.addEventListener('blur', function() {
+                this.value = normalizeJalaliInput(this.value);
+            });
+        });
+
         // هایلایت منوی فعال
         document.querySelectorAll('.nav-item').forEach(function(item) {
             const href = item.getAttribute('href');

@@ -2,7 +2,7 @@
 
 {% block title %}ثبت بدهی جدید{% endblock %}
 {% block form_title %}ثبت بدهی جدید{% endblock %}
-{% block cancel_url %}/obligations{% endblock %}
+{% block cancel_url %}/pages/obligations{% endblock %}
 
 {% block form_body %}
 <div class="row">
@@ -49,8 +49,8 @@
 <div class="row">
     <div class="col-md-6 mb-3">
         <label class="form-label">تاریخ سررسید</label>
-        <input type="date" name="due_date" class="form-control"
-               value="{{ obligation.due_date if obligation else '' }}">
+        <input type="text" name="due_date" class="form-control jalali-date-picker" placeholder="1404/05/03"
+               value="{{ obligation.due_date|jalali if obligation else '' }}">
     </div>
     <div class="col-md-6 mb-3">
         <label class="form-label">مبلغ پرداخت‌شده</label>

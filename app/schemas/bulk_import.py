@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import date, datetime
+from app.schemas.jalali import JalaliDateInput, OptionalJalaliDateInput
 from enum import Enum
 
 class BulkImportType(str, Enum):
@@ -35,7 +36,7 @@ class BulkImportRow(BaseModel):
 class BulkImportCreate(BaseModel):
     import_type: BulkImportType
     project_id: int
-    document_date: date
+    document_date: JalaliDateInput
     document_description: str
     debit_type: Optional[DebitType] = None
     credit_type: Optional[CreditType] = None

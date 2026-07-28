@@ -16,8 +16,9 @@ class JalaliDate:
 
     @classmethod
     def from_string(cls, date_str: str):
-        parts = date_str.replace('/', '-').split('-')
-        if len(parts) == 3:
+        digits = str.maketrans('۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩', '01234567890123456789')
+        parts = date_str.strip().translate(digits).replace('/', '-').replace('.', '-').split('-')
+        if len(parts) == 3 and all(part.isdigit() for part in parts):
             return cls(int(parts[0]), int(parts[1]), int(parts[2]))
         raise ValueError(f"Invalid jalali date: {date_str}")
 

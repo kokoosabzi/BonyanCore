@@ -28,30 +28,42 @@ class JournalEntryService:
         
         total_debit = 0
         total_credit = 0
+        created_lines = 0
         
         for line_data in data.lines:
-            if line_data.debit:
+            debit = line_data.debit or 0
+            credit = line_data.credit or 0
+            if debit > 0 and credit > 0:
+                db.rollback()
+                raise ValueError("هر ردیف فقط می‌تواند بدهکار یا بستانکار باشد")
+            if debit > 0:
                 line = JournalLine(
                     journal_id=journal.id,
                     account_id=line_data.account_id,
                     debit_credit=DebitCredit.DEBIT,
-                    amount=line_data.debit,
+                    amount=debit,
                     description=line_data.description,
                     analytic_account_id=line_data.analytic_account_id
                 )
                 db.add(line)
-                total_debit += line_data.debit
-            elif line_data.credit:
+                total_debit += debit
+                created_lines += 1
+            elif credit > 0:
                 line = JournalLine(
                     journal_id=journal.id,
                     account_id=line_data.account_id,
                     debit_credit=DebitCredit.CREDIT,
-                    amount=line_data.credit,
+                    amount=credit,
                     description=line_data.description,
                     analytic_account_id=line_data.analytic_account_id
                 )
                 db.add(line)
-                total_credit += line_data.credit
+                total_credit += credit
+                created_lines += 1
+
+        if created_lines < 2:
+            db.rollback()
+            raise ValueError("حداقل دو ردیف معتبر برای سند حسابداری لازم است")
         
         if total_debit != total_credit:
             db.rollback()
@@ -82,7 +94,11 @@ class JournalEntryService:
             return None
         if journal.status == JournalStatus.POSTED:
             raise ValueError("سند ثبت شده قابل ویرایش نیست")
-        for key, value in data.model_dump(exclude_unset=True).items():
+        update_data = data.model_dump(exclude_unset=True)
+        if "journal_date" in update_data and update_data["journal_date"]:
+            from app.utils.jalali import to_gregorian
+            update_data["journal_date"] = to_gregorian(update_data["journal_date"])
+        for key, value in update_data.items():
             setattr(journal, key, value)
         db.commit()
         db.refresh(journal)

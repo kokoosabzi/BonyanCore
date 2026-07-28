@@ -2,7 +2,7 @@
 
 {% block title %}ثبت فیش جدید{% endblock %}
 {% block form_title %}ثبت فیش جدید{% endblock %}
-{% block cancel_url %}/receipts{% endblock %}
+{% block cancel_url %}/pages/receipts{% endblock %}
 
 {% block form_body %}
 <div class="row">
@@ -37,8 +37,8 @@
     </div>
     <div class="col-md-6 mb-3">
         <label class="form-label required">تاریخ فیش</label>
-        <input type="date" name="receipt_date" class="form-control" required
-               value="{{ receipt.receipt_date if receipt else '' }}">
+        <input type="text" name="receipt_date" class="form-control jalali-date-picker" placeholder="1404/05/03" required
+               value="{{ receipt.receipt_date|jalali if receipt else '' }}">
     </div>
 </div>
 <div class="row">
@@ -71,8 +71,8 @@
     </div>
     <div class="col-md-6 mb-3">
         <label class="form-label">تاریخ سررسید چک</label>
-        <input type="date" name="cheque_due_date" class="form-control"
-               value="{{ receipt.cheque_due_date if receipt else '' }}">
+        <input type="text" name="cheque_due_date" class="form-control jalali-date-picker" placeholder="1404/05/03"
+               value="{{ receipt.cheque_due_date|jalali if receipt else '' }}">
     </div>
 </div>
 <div class="mb-3">

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block page_icon %}journal-text{% endblock %}
+{% block page_title %}مشاهده سند حسابداری{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">سند {{ journal.journal_no }}</h5>
+        <a href="/api/v1/journal-entries/list" class="btn btn-light btn-sm">بازگشت</a>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-4"><strong>تاریخ:</strong> {{ journal.journal_date }}</div>
+            <div class="col-md-4"><strong>وضعیت:</strong> {{ journal.status.value if journal.status.value is defined else journal.status }}</div>
+            <div class="col-md-4"><strong>نوع مرجع:</strong> {{ journal.reference_type or 'عمومی' }}</div>
+            <div class="col-12"><strong>شرح:</strong> {{ journal.description or '-' }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-success text-white"><h5 class="mb-0">ردیف‌های سند</h5></div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>حساب</th>
+                        <th>شرح</th>
+                        <th class="text-end">بدهکار</th>
+                        <th class="text-end">بستانکار</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set totals = namespace(debit=0, credit=0) %}
+                    {% for line in journal.lines %}
+                    {% set debit = line.amount if line.debit_credit == 'DEBIT' else 0 %}
+                    {% set credit = line.amount if line.debit_credit == 'CREDIT' else 0 %}
+                    {% set totals.debit = totals.debit + debit %}
+                    {% set totals.credit = totals.credit + credit %}
+                    <tr>
+                        <td>{{ line.account.account_code if line.account else line.account_id }} - {{ line.account.account_name if line.account else '' }}</td>
+                        <td>{{ line.description or '-' }}</td>
+                        <td class="text-end">{{ '{:,}'.format(debit) if debit else '-' }}</td>
+                        <td class="text-end">{{ '{:,}'.format(credit) if credit else '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="table-info">
+                        <th colspan="2">جمع کل</th>
+                        <th class="text-end">{{ '{:,}'.format(totals.debit) }}</th>
+                        <th class="text-end">{{ '{:,}'.format(totals.credit) }}</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
