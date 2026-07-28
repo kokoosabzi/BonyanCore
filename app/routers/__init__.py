@@ -6,3 +6,7 @@ from app.routers.financial_obligation import router as financial_obligation_rout
 from app.routers.financial_credit import router as financial_credit_router
 from app.routers.pages import router as pages_router
 from app.routers.bulk_import import router as bulk_import_router
+from app.routers.journal_entry import router as journal_entry_router
+from app.routers.cheque_book import router as cheque_book_router
+from app.routers.auth import router as auth_router
+from app.routers.reports import router as reports_router

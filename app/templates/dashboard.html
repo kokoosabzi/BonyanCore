@@ -1,44 +1,43 @@
-{% extends "base_form.html" %}
+{% extends "base.html" %}
 
-{% block title %}داشبورد{% endblock %}
-{% block form_title %}داشبورد مدیریت{% endblock %}
-{% block cancel_url %}/pages{% endblock %}
+{% block page_icon %}house{% endblock %}
+{% block page_title %}داشبورد مدیریت{% endblock %}
 
-{% block form_body %}
+{% block content %}
 <div class="row g-4">
     <div class="col-md-3">
-        <div class="card text-center">
+        <div class="card text-center shadow-sm">
             <div class="card-body">
-                <h5 class="card-title">پروژه‌ها</h5>
-                <h2>{{ projects_count }}</h2>
+                <h5 class="card-title text-primary">🏗️ پروژه‌ها</h5>
+                <h2 class="display-4">{{ projects_count }}</h2>
                 <a href="/pages/projects" class="btn btn-primary btn-sm">مشاهده</a>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card text-center">
+        <div class="card text-center shadow-sm">
             <div class="card-body">
-                <h5 class="card-title">مشتریان</h5>
-                <h2>{{ customers_count }}</h2>
-                <a href="/pages/customers" class="btn btn-primary btn-sm">مشاهده</a>
+                <h5 class="card-title text-success">👤 مشتریان</h5>
+                <h2 class="display-4">{{ customers_count }}</h2>
+                <a href="/pages/customers" class="btn btn-success btn-sm">مشاهده</a>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card text-center">
+        <div class="card text-center shadow-sm">
             <div class="card-body">
-                <h5 class="card-title">عضویت‌ها</h5>
-                <h2>{{ members_count }}</h2>
-                <a href="/pages/memberships" class="btn btn-primary btn-sm">مشاهده</a>
+                <h5 class="card-title text-info">📋 عضویت‌ها</h5>
+                <h2 class="display-4">{{ members_count }}</h2>
+                <a href="/pages/memberships" class="btn btn-info btn-sm text-white">مشاهده</a>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card text-center">
+        <div class="card text-center shadow-sm">
             <div class="card-body">
-                <h5 class="card-title">قراردادها</h5>
-                <h2>{{ contracts_count }}</h2>
-                <a href="/pages/contracts" class="btn btn-primary btn-sm">مشاهده</a>
+                <h5 class="card-title text-warning">📄 قراردادها</h5>
+                <h2 class="display-4">{{ contracts_count }}</h2>
+                <a href="/pages/contracts" class="btn btn-warning btn-sm">مشاهده</a>
             </div>
         </div>
     </div>
@@ -48,21 +47,23 @@
 
 <div class="row mt-4">
     <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">عملیات سریع</div>
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">⚡ عملیات سریع</div>
             <div class="card-body">
                 <div class="d-grid gap-2">
                     <a href="/pages/projects/create" class="btn btn-outline-primary">➕ پروژه جدید</a>
                     <a href="/pages/customers/create" class="btn btn-outline-success">➕ مشتری جدید</a>
                     <a href="/pages/memberships/create" class="btn btn-outline-info">➕ عضویت جدید</a>
                     <a href="/pages/receipts/create" class="btn btn-outline-warning">💰 ثبت فیش</a>
+                    <a href="/api/v1/journal-entries/create" class="btn btn-outline-danger">📝 سند حسابداری جدید</a>
+                    <a href="/bulk-import/" class="btn btn-outline-secondary">📥 ورود گروهی</a>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">گزارش‌ها</div>
+        <div class="card shadow-sm">
+            <div class="card-header bg-success text-white">📊 گزارشات</div>
             <div class="card-body">
                 <div class="d-grid gap-2">
                     <a href="/reports/project-summary" class="btn btn-secondary">خلاصه مالی پروژه</a>

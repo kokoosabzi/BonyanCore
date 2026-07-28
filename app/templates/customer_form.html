@@ -55,8 +55,8 @@
 <div class="mb-3">
     <label class="form-label">وضعیت</label>
     <select name="status" class="form-select">
-        <option value="ACTIVE" {% if customer and customer.status == 'ACTIVE' %}selected{% endif %}>فعال</option>
-        <option value="INACTIVE" {% if customer and customer.status == 'INACTIVE' }}selected{% endif %}>غیرفعال</option>
+        <option value="ACTIVE" {% if customer and customer.status == 'ACTIVE'%}selected{% endif %}>فعال</option>
+        <option value="INACTIVE" {% if customer and customer.status == 'INACTIVE'%}selected{% endif %}>غیرفعال</option>
     </select>
 </div>
 {% endblock %}

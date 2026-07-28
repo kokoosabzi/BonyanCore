@@ -12,3 +12,6 @@ pandas==2.2.2
 jinja2==3.1.4
 weasyprint==62.3
 jdatetime==6.0.1
+passlib==1.7.4
+bcrypt==4.0.1
+pyjwt==2.8.0

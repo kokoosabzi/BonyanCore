@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block page_icon %}bank{% endblock %}
+{% block page_title %}گزارش بانک{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">🏦 گزارش حساب بانکی</h5>
+        <div>
+            <button onclick="window.print()" class="btn btn-light btn-sm">
+                <i class="bi bi-printer"></i> چاپ
+            </button>
+            <a href="/reports/bank/excel?account_id={{ account_id }}" class="btn btn-light btn-sm">
+                <i class="bi bi-file-excel"></i> Excel
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+
+        <!-- فیلتر -->
+        <form method="get" class="row g-3 mb-4">
+            <div class="col-md-4">
+                <label class="form-label">حساب بانکی</label>
+                <select name="account_id" class="form-select" onchange="this.form.submit()">
+                    <option value="">انتخاب حساب...</option>
+                    {% for acc in accounts %}
+                    <option value="{{ acc.id }}" {% if acc.id == account_id %}selected{% endif %}>
+                        {{ acc.account_no }} - {{ acc.bank.bank_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">از تاریخ</label>
+                <input type="text" name="from_date" class="form-control jalali-date-picker" 
+                       value="{{ from_date }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">تا تاریخ</label>
+                <input type="text" name="to_date" class="form-control jalali-date-picker" 
+                       value="{{ to_date }}">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">فیلتر</button>
+            </div>
+        </form>
+
+        {% if account %}
+        <div class="row mb-4">
+            <div class="col-md-3"><strong>شماره حساب:</strong> {{ account.account_no }}</div>
+            <div class="col-md-3"><strong>بانک:</strong> {{ account.bank.bank_name }}</div>
+            <div class="col-md-3"><strong>شعبه:</strong> {{ account.branch or '-' }}</div>
+            <div class="col-md-3">
+                <strong>مانده:</strong> 
+                <span class="{% if balance >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    {{ "{:,.0f}".format(balance) }}
+                </span>
+            </div>
+        </div>
+
+        <!-- خلاصه -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="card text-center bg-success text-white">
+                    <div class="card-body">
+                        <h6>کل واریزی</h6>
+                        <h3>{{ "{:,.0f}".format(total_deposits) }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center bg-danger text-white">
+                    <div class="card-body">
+                        <h6>کل برداشت</h6>
+                        <h3>{{ "{:,.0f}".format(total_withdrawals) }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center bg-primary text-white">
+                    <div class="card-body">
+                        <h6>تعداد تراکنش</h6>
+                        <h3>{{ transaction_count }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- جدول تراکنش‌ها -->
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>تاریخ</th>
+                        <th>شرح</th>
+                        <th>نوع</th>
+                        <th>مبلغ</th>
+                        <th>مانده</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for txn in transactions %}
+                    <tr>
+                        <td>{{ txn.date }}</td>
+                        <td>{{ txn.description }}</td>
+                        <td>
+                            {% if txn.type == 'DEPOSIT' %}
+                            <span class="badge bg-success">واریز</span>
+                            {% else %}
+                            <span class="badge bg-danger">برداشت</span>
+                            {% endif %}
+                        </td>
+                        <td class="{% if txn.type == 'DEPOSIT' %}text-success{% else %}text-danger{% endif %}">
+                            {{ "{:,.0f}".format(txn.amount) }}
+                        </td>
+                        <td>{{ "{:,.0f}".format(txn.balance) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-warning text-center py-5">
+            <i class="bi bi-info-circle" style="font-size: 2rem;"></i>
+            <h5>لطفاً یک حساب بانکی را انتخاب کنید</h5>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

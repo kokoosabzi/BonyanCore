@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block page_icon %}pencil-square{% endblock %}
+{% block page_title %}ویرایش مشتری{% endblock %}
+
+{% block content %}
+<div class="form-container" style="max-width: 800px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="mb-0">✏️ ویرایش مشتری</h4>
+        <a href="/pages/customers" class="btn btn-secondary btn-sm">
+            <i class="bi bi-arrow-right"></i> بازگشت
+        </a>
+    </div>
+    <hr>
+
+    <form method="post" action="/pages/customers/{{ customer.id }}/edit">
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label required">شماره مشتری</label>
+                <input type="text" name="customer_no" class="form-control" 
+                       value="{{ customer.customer_no }}" disabled>
+                <small class="text-muted">شماره مشتری قابل تغییر نیست</small>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label required">نام کامل</label>
+                <input type="text" name="full_name" class="form-control" required 
+                       value="{{ customer.full_name }}">
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">کد ملی</label>
+                <input type="text" name="national_code" class="form-control" maxlength="10"
+                       value="{{ customer.national_code }}">
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">تاریخ تولد</label>
+                <input type="date" name="birth_date" class="form-control"
+                       value="{{ customer.birth_date }}">
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">موبایل</label>
+                <input type="text" name="mobile" class="form-control" maxlength="11"
+                       value="{{ customer.mobile }}">
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">تلفن</label>
+                <input type="text" name="phone" class="form-control"
+                       value="{{ customer.phone }}">
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">آدرس</label>
+            <textarea name="address" class="form-control" rows="2">{{ customer.address }}</textarea>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">شغل</label>
+            <input type="text" name="job" class="form-control"
+                   value="{{ customer.job }}">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">وضعیت</label>
+            <select name="status" class="form-select">
+                <option value="ACTIVE" {% if customer.status == 'ACTIVE' %}selected{% endif %}>فعال</option>
+                <option value="INACTIVE" {% if customer.status == 'INACTIVE' %}selected{% endif %}>غیرفعال</option>
+            </select>
+        </div>
+        <div class="d-flex justify-content-between mt-4">
+            <a href="/pages/customers" class="btn btn-secondary">لغو</a>
+            <div>
+                <button type="button" class="btn btn-danger me-2" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                    <i class="bi bi-trash"></i> حذف
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg"></i> ذخیره تغییرات
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- مودال حذف -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">⚠️ تأیید حذف</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>آیا از حذف مشتری <strong>{{ customer.full_name }}</strong> اطمینان دارید؟</p>
+                <p class="text-danger small">این عملیات غیرقابل بازگشت است.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
+                <form method="post" action="/pages/customers/{{ customer.id }}/delete" style="display:inline;">
+                    <button type="submit" class="btn btn-danger">تأیید حذف</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -38,3 +38,48 @@ uvicorn main:app --reload --host 127.0.0.1 --port 8000
 # http://127.0.0.1:8000/pages/projects
 # http://127.0.0.1:8000/pages/customers
 # http://127.0.0.1:8000/pages/receipts
+
+
+🚀 نصب وابستگی‌های جدید و اجرا
+powershell
+pip install passlib bcrypt pyjwt
+uvicorn main:app --reload --host 127.0.0.1 --port 8000
+🔑 ایجاد کاربر ادمین اولیه
+python
+# در ترمینال (پس از اجرا)
+python -c "from app.core.database import SessionLocal; from app.services.auth_service import AuthService; db=SessionLocal(); AuthService.create_superuser(db, 'admin', 'admin123', 'مدیر سیستم'); print('✅ Admin created')"
+
+
+python -c "from app.core.database import SessionLocal; from app.services.auth_service import AuthService; db=SessionLocal(); user=AuthService.create_superuser(db, 'admin', 'admin123', 'مدیر سیستم'); print(f'✅ Admin created: {user.username}')"
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+۱. وارد سیستم شوید (/auth/login)
+۲. یک پروژه جدید ایجاد کنید (/pages/projects/create)
+۳. چند مشتری جدید ایجاد کنید (/pages/customers/create)
+۴. مشتریان را در پروژه عضو کنید (/pages/memberships/create)
+۵. قرارداد عضویت ثبت کنید (/pages/contracts/create)
+۶. بدهی گروهی ایجاد کنید (/bulk-import/)
+۷. فیش ثبت کنید (/pages/receipts/create)
+۸. سند حسابداری ایجاد کنید (/api/v1/journal-entries/create)
+۹. گزارش صورت حساب مشتری را ببینید (/reports/customer-statement)
+۱۰. گزارش خلاصه مالی پروژه را ببینید (/reports/project-summary)
+
+شروع تست کامل و یکپارچه Bonyan Core
+مرحله ۱: راه‌اندازی و ایجاد کاربر ادمین
+۱. اجرای برنامه
+powershell
+cd C:\python\git\BonyanCore
+.\venv\Scripts\activate
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+۲. ایجاد کاربر ادمین (در ترمینال جدید)
+powershell
+cd C:\python\git\BonyanCore
+.\venv\Scripts\activate
+python -c "
+from app.core.database import SessionLocal
+from app.services.auth_service import AuthService
+db = SessionLocal()
+try:
+    user = AuthService.create_superuser(db, 'admin', 'admin123', 'مدیر سیستم', 'admin@bonyan.ir')
+    print(f'✅ کاربر ادمین ایجاد شد: {user.username}')
+except Exception as e:

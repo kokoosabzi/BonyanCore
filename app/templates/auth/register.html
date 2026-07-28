@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ثبت نام - Bonyan Core</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #0d6efd, #0a58ca);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .register-container {
+            max-width: 500px;
+            width: 100%;
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .register-container h3 {
+            font-weight: bold;
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <h3 class="text-center">📝 ثبت نام</h3>
+
+        {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+
+        <form method="post" action="/auth/register-page">
+            <div class="mb-3">
+                <label class="form-label">نام کاربری</label>
+                <input type="text" name="username" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">نام کامل</label>
+                <input type="text" name="full_name" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">ایمیل</label>
+                <input type="email" name="email" class="form-control">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">تلفن</label>
+                <input type="text" name="phone" class="form-control">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">رمز عبور</label>
+                <input type="password" name="password" class="form-control" required minlength="6">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">نقش</label>
+                <select name="role_id" class="form-select">
+                    <option value="">بدون نقش</option>
+                    {% for role in roles %}
+                    <option value="{{ role.id }}">{{ role.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">ثبت نام</button>
+        </form>
+
+        <div class="text-center mt-3">
+            <small class="text-muted">
+                قبلاً ثبت نام کرده‌اید؟ <a href="/auth/login">ورود</a>
+            </small>
+        </div>
+    </div>
+</body>
+</html>

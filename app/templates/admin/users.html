@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block page_icon %}people{% endblock %}
+{% block page_title %}مدیریت کاربران{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">👥 لیست کاربران</h5>
+        <a href="/auth/register" class="btn btn-light btn-sm">
+            <i class="bi bi-plus-circle"></i> کاربر جدید
+        </a>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>نام کاربری</th>
+                        <th>نام کامل</th>
+                        <th>ایمیل</th>
+                        <th>نقش</th>
+                        <th>وضعیت</th>
+                        <th>آخرین ورود</th>
+                        <th>عملیات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td><code>{{ user.username }}</code></td>
+                        <td>{{ user.full_name }}</td>
+                        <td>{{ user.email or '-' }}</td>
+                        <td>{{ user.role.name if user.role else '-' }}</td>
+                        <td>
+                            {% if user.is_active %}
+                            <span class="badge bg-success">فعال</span>
+                            {% else %}
+                            <span class="badge bg-danger">غیرفعال</span>
+                            {% endif %}
+                            {% if user.is_superuser %}
+                            <span class="badge bg-warning">ادمین</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ user.last_login.strftime('%Y-%m-%d %H:%M') if user.last_login else '-' }}</td>
+                        <td>
+                            <a href="/auth/users/{{ user.id }}/edit" class="btn btn-sm btn-primary">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <button class="btn btn-sm btn-danger" onclick="deleteUser({{ user.id }})">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    function deleteUser(id) {
+        if (confirm('آیا از حذف این کاربر اطمینان دارید؟')) {
+            fetch(`/auth/users/${id}/delete`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+            }).then(() => {
+                location.reload();
+            });
+        }
+    }
+</script>
+{% endblock %}

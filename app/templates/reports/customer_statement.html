@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block page_icon %}file-spreadsheet{% endblock %}
+{% block page_title %}صورت حساب مشتری{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">📊 صورت حساب مشتری</h5>
+        <div>
+            <button onclick="window.print()" class="btn btn-light btn-sm">
+                <i class="bi bi-printer"></i> چاپ
+            </button>
+            <a href="/reports/customer-statement/excel?customer_id={{ customer_id }}" class="btn btn-light btn-sm">
+                <i class="bi bi-file-excel"></i> Excel
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+
+        <!-- فیلتر -->
+        <form method="get" class="row g-3 mb-4">
+            <div class="col-md-4">
+                <label class="form-label">مشتری</label>
+                <select name="customer_id" class="form-select" onchange="this.form.submit()">
+                    <option value="">انتخاب مشتری...</option>
+                    {% for customer in customers %}
+                    <option value="{{ customer.id }}" {% if customer.id == customer_id %}selected{% endif %}>
+                        {{ customer.customer_no }} - {{ customer.full_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">از تاریخ</label>
+                <input type="text" name="from_date" class="form-control jalali-date-picker" 
+                       value="{{ from_date }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">تا تاریخ</label>
+                <input type="text" name="to_date" class="form-control jalali-date-picker" 
+                       value="{{ to_date }}">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">فیلتر</button>
+            </div>
+        </form>
+
+        {% if customer %}
+        <!-- اطلاعات مشتری -->
+        <div class="row mb-4">
+            <div class="col-md-3"><strong>شماره مشتری:</strong> {{ customer.customer_no }}</div>
+            <div class="col-md-3"><strong>نام:</strong> {{ customer.full_name }}</div>
+            <div class="col-md-3"><strong>کد ملی:</strong> {{ customer.national_code or '-' }}</div>
+            <div class="col-md-3"><strong>موبایل:</strong> {{ customer.mobile or '-' }}</div>
+        </div>
+
+        <!-- خلاصه مالی -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card text-center bg-light">
+                    <div class="card-body">
+                        <h6 class="text-muted">مجموع بدهی</h6>
+                        <h3 class="text-danger">{{ "{:,.0f}".format(total_obligations) }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center bg-light">
+                    <div class="card-body">
+                        <h6 class="text-muted">مجموع پرداختی</h6>
+                        <h3 class="text-success">{{ "{:,.0f}".format(total_credits) }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center {% if net_balance >= 0 %}bg-success{% else %}bg-danger{% endif %} text-white">
+                    <div class="card-body">
+                        <h6 class="text-white">مانده بدهی</h6>
+                        <h3>{{ "{:,.0f}".format(net_balance) }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- جدول گردش مالی -->
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>تاریخ</th>
+                        <th>نوع</th>
+                        <th>شرح</th>
+                        <th>بدهکار</th>
+                        <th>بستانکار</th>
+                        <th>مانده</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set running_balance = 0 %}
+                    {% for item in transactions %}
+                    <tr>
+                        <td>{{ item.date }}</td>
+                        <td>
+                            {% if item.type == 'OBLIGATION' %}
+                            <span class="badge bg-danger">بدهی</span>
+                            {% elif item.type == 'CREDIT' %}
+                            <span class="badge bg-success">پرداخت</span>
+                            {% elif item.type == 'RECEIPT' %}
+                            <span class="badge bg-info">فیش</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ item.type }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ item.description }}</td>
+                        <td class="text-danger">{{ "{:,.0f}".format(item.debit) if item.debit else '-' }}</td>
+                        <td class="text-success">{{ "{:,.0f}".format(item.credit) if item.credit else '-' }}</td>
+                        <td>{{ "{:,.0f}".format(item.balance) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="table-info fw-bold">
+                        <td colspan="3">جمع کل</td>
+                        <td>{{ "{:,.0f}".format(total_debit) }}</td>
+                        <td>{{ "{:,.0f}".format(total_credit) }}</td>
+                        <td>{{ "{:,.0f}".format(net_balance) }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-warning text-center py-5">
+            <i class="bi bi-info-circle" style="font-size: 2rem;"></i>
+            <h5>لطفاً یک مشتری را انتخاب کنید</h5>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

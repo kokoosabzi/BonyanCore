@@ -1,49 +1,60 @@
-{% extends "base_form.html" %}
+{% extends "base.html" %}
 
-{% block title %}انتقال بین حساب‌ها{% endblock %}
-{% block form_title %}ثبت انتقال جدید{% endblock %}
-{% block cancel_url %}/transfers{% endblock %}
+{% block page_icon %}arrow-left-right{% endblock %}
+{% block page_title %}ثبت انتقال{% endblock %}
 
-{% block form_body %}
-<div class="row">
-    <div class="col-md-6 mb-3">
-        <label class="form-label required">از حساب</label>
-        <select name="from_account_id" class="form-select" required>
-            <option value="">انتخاب حساب مبدأ...</option>
-            {% for account in bank_accounts %}
-            <option value="{{ account.id }}" {% if transfer and transfer.from_account_id == account.id %}selected{% endif %}>
-                {{ account.account_no }} - {{ account.bank_name }}
-            </option>
-            {% endfor %}
-        </select>
+{% block content %}
+<div class="form-container" style="max-width: 700px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="mb-0">🔄 انتقال بین حساب‌ها</h4>
+        <a href="/pages/transfers" class="btn btn-secondary btn-sm">
+            <i class="bi bi-arrow-right"></i> بازگشت
+        </a>
     </div>
-    <div class="col-md-6 mb-3">
-        <label class="form-label required">به حساب</label>
-        <select name="to_account_id" class="form-select" required>
-            <option value="">انتخاب حساب مقصد...</option>
-            {% for account in bank_accounts %}
-            <option value="{{ account.id }}" {% if transfer and transfer.to_account_id == account.id %}selected{% endif %}>
-                {{ account.account_no }} - {{ account.bank_name }}
-            </option>
-            {% endfor %}
-        </select>
-    </div>
-</div>
-<div class="row">
-    <div class="col-md-6 mb-3">
-        <label class="form-label required">مبلغ (ریال)</label>
-        <input type="number" name="amount" class="form-control" required min="1000"
-               value="{{ transfer.amount if transfer else '' }}">
-    </div>
-    <div class="col-md-6 mb-3">
-        <label class="form-label required">تاریخ انتقال</label>
-        <input type="date" name="transfer_date" class="form-control" required
-               value="{{ transfer.transfer_date if transfer else '' }}">
-    </div>
-</div>
-<div class="mb-3">
-    <label class="form-label">توضیحات</label>
-    <input type="text" name="description" class="form-control"
-           value="{{ transfer.description if transfer else '' }}">
+    <hr>
+
+    <form method="post" action="/api/v1/transfers/">
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label required">از حساب</label>
+                <select name="from_account_id" class="form-select" required>
+                    <option value="">انتخاب حساب مبدأ...</option>
+                    {% for account in bank_accounts %}
+                    <option value="{{ account.id }}">{{ account.account_no }} - {{ account.bank.bank_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label required">به حساب</label>
+                <select name="to_account_id" class="form-select" required>
+                    <option value="">انتخاب حساب مقصد...</option>
+                    {% for account in bank_accounts %}
+                    <option value="{{ account.id }}">{{ account.account_no }} - {{ account.bank.bank_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label required">مبلغ (ریال)</label>
+                <input type="number" name="amount" class="form-control" required min="1000" step="1">
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label required">تاریخ انتقال</label>
+                <input type="text" name="transfer_date" class="form-control jalali-date-picker" 
+                       placeholder="۱۴۰۴/۰۵/۰۳" required>
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">توضیحات</label>
+            <input type="text" name="description" class="form-control" placeholder="شرح انتقال">
+        </div>
+        <div class="d-flex justify-content-between mt-4">
+            <a href="/pages/transfers" class="btn btn-secondary">لغو</a>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-lg"></i> ثبت انتقال
+            </button>
+        </div>
+    </form>
 </div>
 {% endblock %}

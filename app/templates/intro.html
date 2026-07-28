@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block page_icon %}grid{% endblock %}
+{% block page_title %}راهنما و لیست صفحات{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- ستون راست: لیست صفحات -->
+    <div class="col-lg-8">
+        <div class="row">
+            <!-- صفحات اصلی -->
+            <div class="col-md-6">
+                <div class="card mb-3">
+                    <div class="card-header bg-primary text-white">📋 صفحات اصلی</div>
+                    <div class="card-body">
+                        <ul class="list-unstyled">
+                            <li><a href="/pages/" target="_blank">🏠 داشبورد</a></li>
+                            <li><a href="/pages/projects" target="_blank">📁 لیست پروژه‌ها</a></li>
+                            <li><a href="/pages/projects/create" target="_blank">➕ پروژه جدید</a></li>
+                            <li><a href="/pages/customers" target="_blank">👤 لیست مشتریان</a></li>
+                            <li><a href="/pages/customers/create" target="_blank">➕ مشتری جدید</a></li>
+                            <li><a href="/pages/memberships" target="_blank">📋 لیست عضویت‌ها</a></li>
+                            <li><a href="/pages/memberships/create" target="_blank">➕ عضویت جدید</a></li>
+                            <li><a href="/pages/contracts" target="_blank">📄 لیست قراردادها</a></li>
+                            <li><a href="/pages/contracts/final/create" target="_blank">➕ قرارداد نهایی جدید</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- مالی و حسابداری -->
+            <div class="col-md-6">
+                <div class="card mb-3">
+                    <div class="card-header bg-success text-white">💰 مالی و حسابداری</div>
+                    <div class="card-body">
+                        <ul class="list-unstyled">
+                            <li><a href="/pages/receipts" target="_blank">🧾 لیست فیش‌ها</a></li>
+                            <li><a href="/pages/receipts/create" target="_blank">➕ ثبت فیش جدید</a></li>
+                            <li><a href="/pages/obligations" target="_blank">📊 لیست بدهی‌ها</a></li>
+                            <li><a href="/pages/obligations/create" target="_blank">➕ ثبت بدهی جدید</a></li>
+                            <li><a href="/api/v1/journal-entries/list" target="_blank">📋 لیست اسناد حسابداری</a></li>
+                            <li><a href="/api/v1/journal-entries/create" target="_blank">➕ سند حسابداری جدید</a></li>
+                            <li><a href="/api/v1/cheque-books/list" target="_blank">📋 لیست دسته چک‌ها</a></li>
+                            <li><a href="/api/v1/cheque-books/create" target="_blank">➕ دسته چک جدید</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- بانک و خزانه -->
+            <div class="col-md-6">
+                <div class="card mb-3">
+                    <div class="card-header bg-info text-white">🏦 بانک و خزانه</div>
+                    <div class="card-body">
+                        <ul class="list-unstyled">
+                            <li><a href="/pages/banks" target="_blank">🏦 لیست بانک‌ها</a></li>
+                            <li><a href="/pages/banks/create" target="_blank">➕ بانک جدید</a></li>
+                            <li><a href="/pages/bank-accounts" target="_blank">💳 لیست حساب‌های بانکی</a></li>
+                            <li><a href="/pages/bank-accounts/create" target="_blank">➕ حساب بانکی جدید</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bulk Import -->
+            <div class="col-md-6">
+                <div class="card mb-3">
+                    <div class="card-header bg-warning text-dark">📥 ورود گروهی</div>
+                    <div class="card-body">
+                        <ul class="list-unstyled">
+                            <li><a href="/bulk-import/" target="_blank">📤 ورود گروهی داده‌ها</a></li>
+                            <li><a href="/bulk-import/history" target="_blank">📜 تاریخچه ورود گروهی</a></li>
+                            <li><a href="/bulk-import/template/DEBIT" target="_blank">📄 قالب بدهکار گروهی</a></li>
+                            <li><a href="/bulk-import/template/CREDIT" target="_blank">📄 قالب بستانکار گروهی</a></li>
+                            <li><a href="/bulk-import/template/MEMBER" target="_blank">📄 قالب اعضای پروژه</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ستون چپ: API و اطلاعات -->
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header bg-secondary text-white">🔌 API‌ها</div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    <li><a href="/docs" target="_blank">📚 Swagger UI</a></li>
+                    <li><a href="/openapi.json" target="_blank">📄 OpenAPI JSON</a></li>
+                    <li><a href="/health" target="_blank">❤️ Health Check</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header bg-dark text-white">📊 وضعیت سیستم</div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    <li><strong>نسخه:</strong> 0.2.0</li>
+                    <li><strong>دیتابیس:</strong> PostgreSQL 16</li>
+                    <li><strong>Backend:</strong> FastAPI</li>
+                    <li><strong>وضعیت:</strong> <span class="badge bg-success">فعال</span></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-primary text-white">🚀 دسترسی سریع</div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="/pages/" class="btn btn-primary">🏠 داشبورد</a>
+                    <a href="/bulk-import/" class="btn btn-success">📥 ورود گروهی</a>
+                    <a href="/api/v1/journal-entries/create" class="btn btn-warning">📝 سند جدید</a>
+                    <a href="/pages/receipts/create" class="btn btn-info">💰 ثبت فیش</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

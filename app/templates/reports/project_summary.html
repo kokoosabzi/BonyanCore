@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block page_icon %}bar-chart{% endblock %}
+{% block page_title %}خلاصه مالی پروژه{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">📊 خلاصه مالی پروژه</h5>
+        <div>
+            <button onclick="window.print()" class="btn btn-light btn-sm">
+                <i class="bi bi-printer"></i> چاپ
+            </button>
+            <a href="/reports/project-summary/excel?project_id={{ project_id }}" class="btn btn-light btn-sm">
+                <i class="bi bi-file-excel"></i> Excel
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+
+        <!-- فیلتر -->
+        <form method="get" class="row g-3 mb-4">
+            <div class="col-md-4">
+                <label class="form-label">پروژه</label>
+                <select name="project_id" class="form-select" onchange="this.form.submit()">
+                    <option value="">انتخاب پروژه...</option>
+                    {% for proj in projects %}
+                    <option value="{{ proj.id }}" {% if proj.id == project_id %}selected{% endif %}>
+                        {{ proj.project_code }} - {{ proj.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">از تاریخ</label>
+                <input type="text" name="from_date" class="form-control jalali-date-picker" 
+                       value="{{ from_date }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">تا تاریخ</label>
+                <input type="text" name="to_date" class="form-control jalali-date-picker" 
+                       value="{{ to_date }}">
+            </div>
+        </form>
+
+        {% if project %}
+        <div class="row mb-4">
+            <div class="col-md-3"><strong>کد پروژه:</strong> {{ project.project_code }}</div>
+            <div class="col-md-5"><strong>نام:</strong> {{ project.name }}</div>
+            <div class="col-md-4"><strong>تعداد واحد:</strong> {{ project.total_units }}</div>
+        </div>
+
+        <!-- کارت‌های آماری -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="card text-center bg-primary text-white">
+                    <div class="card-body">
+                        <h6>تعداد اعضا</h6>
+                        <h2>{{ member_count }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center bg-danger text-white">
+                    <div class="card-body">
+                        <h6>کل بدهی</h6>
+                        <h2>{{ "{:,.0f}".format(total_obligations) }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center bg-success text-white">
+                    <div class="card-body">
+                        <h6>کل پرداختی</h6>
+                        <h2>{{ "{:,.0f}".format(total_credits) }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center bg-warning text-dark">
+                    <div class="card-body">
+                        <h6>بدهی معوق</h6>
+                        <h2>{{ "{:,.0f}".format(total_overdue) }}</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- وضعیت اعضا -->
+        <div class="table-responsive">
+            <h6>وضعیت مالی اعضا</h6>
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>شماره عضو</th>
+                        <th>نام</th>
+                        <th>کل بدهی</th>
+                        <th>کل پرداخت</th>
+                        <th>مانده</th>
+                        <th>وضعیت</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for member in member_summaries %}
+                    <tr>
+                        <td>{{ member.customer_no }}</td>
+                        <td>{{ member.full_name }}</td>
+                        <td>{{ "{:,.0f}".format(member.total_obligations) }}</td>
+                        <td>{{ "{:,.0f}".format(member.total_credits) }}</td>
+                        <td class="{% if member.balance > 0 %}text-danger{% else %}text-success{% endif %}">
+                            {{ "{:,.0f}".format(member.balance) }}
+                        </td>
+                        <td>
+                            {% if member.balance == 0 %}
+                            <span class="badge bg-success">تسویه</span>
+                            {% elif member.balance > 0 %}
+                            <span class="badge bg-danger">بدهکار</span>
+                            {% else %}
+                            <span class="badge bg-warning">بستانکار</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-warning text-center py-5">
+            <i class="bi bi-info-circle" style="font-size: 2rem;"></i>
+            <h5>لطفاً یک پروژه را انتخاب کنید</h5>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

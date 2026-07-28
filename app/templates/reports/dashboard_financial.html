@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block page_icon %}bar-chart-fill{% endblock %}
+{% block page_title %}داشبورد مالی{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- کارت‌های آماری -->
+    <div class="col-md-3">
+        <div class="card text-center bg-primary text-white shadow-sm">
+            <div class="card-body">
+                <h6>کل بدهی</h6>
+                <h2 id="totalDebt">0</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center bg-success text-white shadow-sm">
+            <div class="card-body">
+                <h6>کل پرداختی</h6>
+                <h2 id="totalPayment">0</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center bg-warning text-dark shadow-sm">
+            <div class="card-body">
+                <h6>بدهی معوق</h6>
+                <h2 id="overdueDebt">0</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center bg-info text-white shadow-sm">
+            <div class="card-body">
+                <h6>تعداد پروژه‌ها</h6>
+                <h2 id="projectCount">{{ projects_count or 0 }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- فیلتر -->
+<div class="card shadow-sm mt-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">پروژه</label>
+                <select name="project_id" class="form-select">
+                    <option value="">همه پروژه‌ها</option>
+                    {% for project in projects %}
+                    <option value="{{ project.id }}">{{ project.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">از تاریخ</label>
+                <input type="text" name="from_date" class="form-control jalali-date-picker">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">تا تاریخ</label>
+                <input type="text" name="to_date" class="form-control jalali-date-picker">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">فیلتر</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <!-- نمودارها (با Chart.js) -->
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header">📊 وضعیت مالی</div>
+            <div class="card-body">
+                <canvas id="financialChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header">📈 روند تراکنش‌ها</div>
+            <div class="card-body">
+                <canvas id="trendChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // نمودار وضعیت مالی
+    new Chart(document.getElementById('financialChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['بدهی', 'پرداختی', 'معوق'],
+            datasets: [{
+                data: [{{ total_debt or 0 }}, {{ total_payment or 0 }}, {{ overdue_debt or 0 }}],
+                backgroundColor: ['#0d6efd', '#28a745', '#dc3545']
+            }]
+        },
+        options: { responsive: true }
+    });
+
+    // نمودار روند
+    new Chart(document.getElementById('trendChart'), {
+        type: 'line',
+        data: {
+            labels: ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور'],
+            datasets: [{
+                label: 'واریزی',
+                data: [100, 120, 150, 90, 200, 170],
+                borderColor: '#28a745',
+                fill: false
+            }, {
+                label: 'برداشت',
+                data: [80, 110, 130, 70, 180, 150],
+                borderColor: '#dc3545',
+                fill: false
+            }]
+        },
+        options: { responsive: true }
+    });
+</script>
+{% endblock %}

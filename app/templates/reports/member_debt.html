@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block page_icon %}person-badge{% endblock %}
+{% block page_title %}گزارش بدهکاران{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">📋 لیست بدهکاران</h5>
+        <button onclick="window.print()" class="btn btn-light btn-sm">
+            <i class="bi bi-printer"></i> چاپ
+        </button>
+    </div>
+    <div class="card-body">
+
+        <!-- فیلتر -->
+        <form method="get" class="row g-3 mb-4">
+            <div class="col-md-4">
+                <label class="form-label">پروژه</label>
+                <select name="project_id" class="form-select" onchange="this.form.submit()">
+                    <option value="">همه پروژه‌ها</option>
+                    {% for proj in projects %}
+                    <option value="{{ proj.id }}" {% if proj.id == project_id %}selected{% endif %}>
+                        {{ proj.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>شماره عضو</th>
+                        <th>نام</th>
+                        <th>پروژه</th>
+                        <th>نوع بدهی</th>
+                        <th>مبلغ کل</th>
+                        <th>پرداخت شده</th>
+                        <th>مانده</th>
+                        <th>سررسید</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for debt in debts %}
+                    <tr class="{% if (debt.amount - debt.paid_amount) > 0 %}table-danger{% endif %}">
+                        <td>{{ debt.customer.customer_no }}</td>
+                        <td>{{ debt.customer.full_name }}</td>
+                        <td>{{ debt.project.name }}</td>
+                        <td>
+                            {% if debt.obligation_type == 'PROJECT_PLAN' %}
+                            پلن پروژه
+                            {% elif debt.obligation_type == 'UNIT_DIFFERENCE' %}
+                            مابه‌التفاوت
+                            {% else %}
+                            {{ debt.obligation_type }}
+                            {% endif %}
+                        </td>
+                        <td>{{ "{:,.0f}".format(debt.amount) }}</td>
+                        <td>{{ "{:,.0f}".format(debt.paid_amount) }}</td>
+                        <td class="text-danger">{{ "{:,.0f}".format(debt.amount - debt.paid_amount) }}</td>
+                        <td>{{ debt.due_date or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

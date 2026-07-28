@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block page_icon %}receipt{% endblock %}
+{% block page_title %}لیست دسته چک‌ها{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">📋 لیست دسته چک‌ها</h5>
+        <a href="/api/v1/cheque-books/create" class="btn btn-light btn-sm">
+            <i class="bi bi-plus-circle"></i> دسته چک جدید
+        </a>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>شماره سری</th>
+                        <th>شماره سریال</th>
+                        <th>عنوان</th>
+                        <th>حساب بانکی</th>
+                        <th>تعداد برگ</th>
+                        <th>تاریخ دریافت</th>
+                        <th>وضعیت</th>
+                        <th>عملیات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for book in books %}
+                    <tr>
+                        <td><strong>{{ book.serial_no }}</strong></td>
+                        <td>{{ book.serial_number }}</td>
+                        <td>{{ book.title or '-' }}</td>
+                        <td>{{ book.bank_account.account_no }}</td>
+                        <td>{{ book.total_pages }}</td>
+                        <td>{{ book.receive_date or '-' }}</td>
+                        <td>
+                            {% if book.status == 'ACTIVE' %}
+                            <span class="badge bg-success">فعال</span>
+                            {% else %}
+                            <span class="badge bg-secondary">غیرفعال</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="/api/v1/cheque-books/{{ book.id }}/edit" class="btn btn-sm btn-primary">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <button class="btn btn-sm btn-danger" onclick="deleteBook({{ book.id }})">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    function deleteBook(id) {
+        if (confirm('آیا از حذف این دسته چک اطمینان دارید؟')) {
+            fetch(`/api/v1/cheque-books/${id}`, {
+                method: 'DELETE'
+            }).then(response => {
+                if (response.ok) {
+                    location.reload();
+                } else {
+                    alert('خطا در حذف دسته چک');
+                }
+            });
+        }
+    }
+</script>
+{% endblock %}

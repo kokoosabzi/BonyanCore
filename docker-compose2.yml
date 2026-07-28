@@ -1,0 +1,5 @@
+services:
+  adminer:
+    image: adminer:latest
+    ports:
+      - "8080:8080" # پورت 8080 روی سیستم شما به پورت 8080 کانتینر متصل می‌شود

@@ -1,0 +1,310 @@
+{% extends "base_form.html" %}
+
+{% block title %}ثبت سند حسابداری{% endblock %}
+{% block form_title %}ثبت سند حسابداری{% endblock %}
+
+{% block form_content %}
+<form method="post" action="/api/v1/journal-entries/" id="journalForm">
+    <input type="hidden" name="status" value="DRAFT">
+    
+    <!-- سربرگ سند -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">اطلاعات سربرگ سند</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label required">شماره سند</label>
+                    <input type="text" class="form-control" value="{{ journal.journal_no if journal else 'خودکار' }}" disabled>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label required">تاریخ سند</label>
+                    <input type="text" name="journal_date" class="form-control jalali-date-picker" 
+                           placeholder="۱۴۰۴/۰۵/۰۳" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">وضعیت</label>
+                    <select name="status" class="form-select">
+                        <option value="DRAFT" selected>پیش‌نویس</option>
+                        <option value="POSTED">ثبت شده</option>
+                    </select>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">نوع سند</label>
+                    <select name="reference_type" class="form-select">
+                        <option value="">عمومی</option>
+                        <option value="RECEIPT">دریافت</option>
+                        <option value="PAYMENT">پرداخت</option>
+                        <option value="TRANSFER">انتقال</option>
+                        <option value="ADJUSTMENT">تعدیلی</option>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">شرح سند</label>
+                    <input type="text" name="description" class="form-control" 
+                           placeholder="شرح سند را وارد کنید">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- جدول ردیف‌ها -->
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">ردیف‌های سند</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover" id="linesTable">
+                    <thead>
+                        <tr>
+                            <th style="width:50px">ردیف</th>
+                            <th style="width:200px">کد حساب</th>
+                            <th>شرح</th>
+                            <th style="width:150px">بدهکار</th>
+                            <th style="width:150px">بستانکار</th>
+                            <th style="width:60px">عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="linesBody">
+                        <tr>
+                            <td class="text-center">1</td>
+                            <td>
+                                <select name="lines[0][account_id]" class="form-select" required>
+                                    <option value="">انتخاب حساب...</option>
+                                    {% for account in accounts %}
+                                    <option value="{{ account.id }}">{{ account.account_code }} - {{ account.account_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td><input type="text" name="lines[0][description]" class="form-control"></td>
+                            <td><input type="number" name="lines[0][debit]" class="form-control amount" step="1" min="0"></td>
+                            <td><input type="number" name="lines[0][credit]" class="form-control amount" step="1" min="0"></td>
+                            <td>
+                                <button type="button" class="btn btn-danger btn-sm remove-line">✖</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-info">
+                            <th colspan="3">جمع کل</th>
+                            <th id="totalDebit">0</th>
+                            <th id="totalCredit">0</th>
+                            <th></th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            
+            <button type="button" class="btn btn-secondary mt-2" id="addLineBtn">
+                <i class="bi bi-plus-circle"></i> افزودن ردیف
+            </button>
+            <button type="button" class="btn btn-danger mt-2" id="clearLinesBtn">
+                <i class="bi bi-trash"></i> پاک کردن همه
+            </button>
+            
+            <div id="balanceAlert" class="alert alert-danger mt-3" style="display:none;">
+                ⚠️ جمع بدهکار و بستانکار باید برابر باشد!
+            </div>
+            <div id="emptyAlert" class="alert alert-warning mt-3" style="display:none;">
+                ⚠️ حداقل یک ردیف باید وجود داشته باشد!
+            </div>
+        </div>
+    </div>
+
+    <!-- دکمه‌ها -->
+    <div class="d-flex justify-content-between mt-4">
+        <div>
+            <a href="/api/v1/journal-entries/list" class="btn btn-secondary">بازگشت</a>
+        </div>
+        <div>
+            <button type="submit" class="btn btn-primary" id="saveBtn">ذخیره پیش‌نویس</button>
+            <button type="button" class="btn btn-success" id="postBtn">ثبت نهایی</button>
+        </div>
+    </div>
+</form>
+
+<script>
+    let lineCounter = 1;
+
+    // افزودن ردیف
+    document.getElementById('addLineBtn').addEventListener('click', function() {
+        lineCounter++;
+        const tbody = document.getElementById('linesBody');
+        const newRow = document.createElement('tr');
+        newRow.innerHTML = `
+            <td class="text-center">${lineCounter}</td>
+            <td>
+                <select name="lines[${lineCounter-1}][account_id]" class="form-select" required>
+                    <option value="">انتخاب حساب...</option>
+                    {% for account in accounts %}
+                    <option value="{{ account.id }}">{{ account.account_code }} - {{ account.account_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <td><input type="text" name="lines[${lineCounter-1}][description]" class="form-control"></td>
+            <td><input type="number" name="lines[${lineCounter-1}][debit]" class="form-control amount" step="1" min="0"></td>
+            <td><input type="number" name="lines[${lineCounter-1}][credit]" class="form-control amount" step="1" min="0"></td>
+            <td>
+                <button type="button" class="btn btn-danger btn-sm remove-line">✖</button>
+            </td>
+        `;
+        tbody.appendChild(newRow);
+        updateTotals();
+    });
+
+    // پاک کردن همه ردیف‌ها
+    document.getElementById('clearLinesBtn').addEventListener('click', function() {
+        const tbody = document.getElementById('linesBody');
+        tbody.innerHTML = '';
+        lineCounter = 0;
+        addFirstRow();
+        updateTotals();
+    });
+
+    function addFirstRow() {
+        lineCounter = 1;
+        const tbody = document.getElementById('linesBody');
+        const newRow = document.createElement('tr');
+        newRow.innerHTML = `
+            <td class="text-center">1</td>
+            <td>
+                <select name="lines[0][account_id]" class="form-select" required>
+                    <option value="">انتخاب حساب...</option>
+                    {% for account in accounts %}
+                    <option value="{{ account.id }}">{{ account.account_code }} - {{ account.account_name }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <td><input type="text" name="lines[0][description]" class="form-control"></td>
+            <td><input type="number" name="lines[0][debit]" class="form-control amount" step="1" min="0"></td>
+            <td><input type="number" name="lines[0][credit]" class="form-control amount" step="1" min="0"></td>
+            <td>
+                <button type="button" class="btn btn-danger btn-sm remove-line">✖</button>
+            </td>
+        `;
+        tbody.appendChild(newRow);
+    }
+
+    // حذف ردیف
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-line')) {
+            const row = e.target.closest('tr');
+            if (document.querySelectorAll('#linesBody tr').length > 1) {
+                row.remove();
+                updateTotals();
+                renumberRows();
+            } else {
+                alert('حداقل یک ردیف باید وجود داشته باشد.');
+            }
+        }
+    });
+
+    // محاسبه جمع
+    document.addEventListener('input', function(e) {
+        if (e.target.classList.contains('amount')) {
+            updateTotals();
+        }
+    });
+
+    function updateTotals() {
+        let totalDebit = 0;
+        let totalCredit = 0;
+        let hasRows = false;
+        
+        document.querySelectorAll('#linesBody tr').forEach(function(row) {
+            hasRows = true;
+            const debit = parseFloat(row.querySelector('input[name$="[debit]"]')?.value || 0);
+            const credit = parseFloat(row.querySelector('input[name$="[credit]"]')?.value || 0);
+            totalDebit += debit;
+            totalCredit += credit;
+        });
+        
+        document.getElementById('totalDebit').textContent = totalDebit.toLocaleString();
+        document.getElementById('totalCredit').textContent = totalCredit.toLocaleString();
+        
+        const balanceAlert = document.getElementById('balanceAlert');
+        const emptyAlert = document.getElementById('emptyAlert');
+        
+        if (!hasRows) {
+            emptyAlert.style.display = 'block';
+            balanceAlert.style.display = 'none';
+        } else if (totalDebit !== totalCredit) {
+            balanceAlert.style.display = 'block';
+            emptyAlert.style.display = 'none';
+        } else {
+            balanceAlert.style.display = 'none';
+            emptyAlert.style.display = 'none';
+        }
+    }
+
+    function renumberRows() {
+        const rows = document.querySelectorAll('#linesBody tr');
+        rows.forEach(function(row, index) {
+            row.querySelector('td:first-child').textContent = index + 1;
+        });
+    }
+
+    // ثبت نهایی
+    document.getElementById('postBtn').addEventListener('click', function(e) {
+        e.preventDefault();
+        const form = document.getElementById('journalForm');
+        const statusInput = form.querySelector('input[name="status"]');
+        if (statusInput) {
+            statusInput.value = 'POSTED';
+        }
+        if (validateForm()) {
+            form.submit();
+        }
+    });
+
+    // ذخیره پیش‌نویس
+    document.getElementById('saveBtn').addEventListener('click', function(e) {
+        const form = document.getElementById('journalForm');
+        const statusInput = form.querySelector('input[name="status"]');
+        if (statusInput) {
+            statusInput.value = 'DRAFT';
+        }
+    });
+
+    function validateForm() {
+        const rows = document.querySelectorAll('#linesBody tr');
+        if (rows.length === 0) {
+            alert('حداقل یک ردیف باید وجود داشته باشد.');
+            return false;
+        }
+        
+        let totalDebit = 0;
+        let totalCredit = 0;
+        let hasAccount = false;
+        
+        rows.forEach(function(row) {
+            const account = row.querySelector('select[name$="[account_id]"]')?.value;
+            const debit = parseFloat(row.querySelector('input[name$="[debit]"]')?.value || 0);
+            const credit = parseFloat(row.querySelector('input[name$="[credit]"]')?.value || 0);
+            
+            if (account) hasAccount = true;
+            totalDebit += debit;
+            totalCredit += credit;
+        });
+        
+        if (!hasAccount) {
+            alert('حداقل یک ردیف باید حساب داشته باشد.');
+            return false;
+        }
+        
+        if (totalDebit !== totalCredit) {
+            alert('جمع بدهکار و بستانکار باید برابر باشد!');
+            return false;
+        }
+        
+        return true;
+    }
+
+    // محاسبه اولیه
+    updateTotals();
+</script>
+{% endblock %}

@@ -1,0 +1,112 @@
+from sqlalchemy.orm import Session
+from typing import List
+from datetime import datetime
+from app.models.journal_entry import JournalEntry, JournalStatus
+from app.models.journal_line import JournalLine, DebitCredit
+from app.schemas.journal_entry import JournalEntryCreate, JournalEntryUpdate, JournalLineCreate
+from app.services.document_sequence_service import DocumentSequenceService
+
+class JournalEntryService:
+    @staticmethod
+    def create(db: Session, data: JournalEntryCreate) -> JournalEntry:
+        journal_no = DocumentSequenceService.get_next_journal_number(db)
+        
+        # تبدیل تاریخ شمسی به میلادی (ساده)
+        from app.utils.jalali import to_gregorian
+        journal_date = to_gregorian(data.journal_date)
+        
+        journal = JournalEntry(
+            journal_no=journal_no,
+            journal_date=journal_date,
+            status=data.status or JournalStatus.DRAFT,
+            description=data.description,
+            reference_type=data.reference_type,
+            reference_id=data.reference_id
+        )
+        db.add(journal)
+        db.flush()
+        
+        total_debit = 0
+        total_credit = 0
+        
+        for line_data in data.lines:
+            if line_data.debit:
+                line = JournalLine(
+                    journal_id=journal.id,
+                    account_id=line_data.account_id,
+                    debit_credit=DebitCredit.DEBIT,
+                    amount=line_data.debit,
+                    description=line_data.description,
+                    analytic_account_id=line_data.analytic_account_id
+                )
+                db.add(line)
+                total_debit += line_data.debit
+            elif line_data.credit:
+                line = JournalLine(
+                    journal_id=journal.id,
+                    account_id=line_data.account_id,
+                    debit_credit=DebitCredit.CREDIT,
+                    amount=line_data.credit,
+                    description=line_data.description,
+                    analytic_account_id=line_data.analytic_account_id
+                )
+                db.add(line)
+                total_credit += line_data.credit
+        
+        if total_debit != total_credit:
+            db.rollback()
+            raise ValueError("جمع بدهکار و بستانکار باید برابر باشد")
+        
+        db.commit()
+        db.refresh(journal)
+        return journal
+
+    @staticmethod
+    def get_by_id(db: Session, journal_id: int) -> JournalEntry | None:
+        return db.query(JournalEntry).filter(
+            JournalEntry.id == journal_id,
+            JournalEntry.is_deleted == False
+        ).first()
+
+    @staticmethod
+    def get_all(db: Session, skip: int = 0, limit: int = 100, status: str = None):
+        query = db.query(JournalEntry).filter(JournalEntry.is_deleted == False)
+        if status:
+            query = query.filter(JournalEntry.status == status)
+        return query.offset(skip).limit(limit).all()
+
+    @staticmethod
+    def update(db: Session, journal_id: int, data: JournalEntryUpdate) -> JournalEntry | None:
+        journal = JournalEntryService.get_by_id(db, journal_id)
+        if not journal:
+            return None
+        if journal.status == JournalStatus.POSTED:
+            raise ValueError("سند ثبت شده قابل ویرایش نیست")
+        for key, value in data.model_dump(exclude_unset=True).items():
+            setattr(journal, key, value)
+        db.commit()
+        db.refresh(journal)
+        return journal
+
+    @staticmethod
+    def post(db: Session, journal_id: int) -> JournalEntry | None:
+        journal = JournalEntryService.get_by_id(db, journal_id)
+        if not journal:
+            return None
+        if journal.status == JournalStatus.POSTED:
+            raise ValueError("سند قبلاً ثبت شده است")
+        journal.status = JournalStatus.POSTED
+        db.commit()
+        db.refresh(journal)
+        return journal
+
+    @staticmethod
+    def delete(db: Session, journal_id: int) -> bool:
+        journal = JournalEntryService.get_by_id(db, journal_id)
+        if not journal:
+            return False
+        if journal.status == JournalStatus.POSTED:
+            raise ValueError("سند ثبت شده قابل حذف نیست")
+        journal.is_deleted = True
+        db.commit()
+        return True
