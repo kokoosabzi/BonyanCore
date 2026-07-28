@@ -1,4 +1,5 @@
 from sqlalchemy import Column, String, Boolean, BigInteger, ForeignKey, DateTime, Text
+from sqlalchemy.orm import relationship
 from app.models.base import BaseModel
 
 class User(BaseModel):
@@ -13,3 +14,4 @@ class User(BaseModel):
     last_login = Column(DateTime, nullable=True)
     phone = Column(String(20), nullable=True)
     role_id = Column(BigInteger, ForeignKey("roles.id"), nullable=True)
+    role = relationship("Role", back_populates="users")

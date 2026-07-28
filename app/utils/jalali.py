@@ -1,39 +1,64 @@
-import jdatetime
 from datetime import date, datetime
 from typing import Optional
 
-def to_jalali(dt: date) -> str:
-    """تبدیل تاریخ میلادی به شمسی"""
+import jdatetime
+
+_PERSIAN_DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
+
+
+def normalize_date_text(value: str) -> str:
+    """Normalize Persian/Arabic digits and common separators in date strings."""
+    return value.strip().translate(_PERSIAN_DIGITS).replace("/", "-").replace(".", "-")
+
+
+def parse_jalali_date(value: str | date | datetime | None) -> Optional[date]:
+    """Convert a Jalali date input to Gregorian ``date``.
+
+    Accepted string forms include ``YYYY/MM/DD``, ``YYYY-MM-DD`` and Persian or
+    Arabic digits. Empty values return ``None``; invalid values raise
+    ``ValueError`` so API callers receive validation feedback instead of a
+    silently stored null.
+    """
+    if value in (None, ""):
+        return None
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    if not isinstance(value, str):
+        raise ValueError("تاریخ باید به صورت رشته یا date ارسال شود")
+
+    parts = normalize_date_text(value).split("-")
+    if len(parts) != 3 or not all(part.isdigit() for part in parts):
+        raise ValueError("فرمت تاریخ شمسی باید YYYY/MM/DD باشد")
+
+    year, month, day = (int(part) for part in parts)
+    try:
+        return jdatetime.date(year, month, day).togregorian()
+    except ValueError as exc:
+        raise ValueError("تاریخ شمسی معتبر نیست") from exc
+
+
+def to_jalali(dt: date | datetime | None) -> str:
+    """Convert a Gregorian date/datetime to a Jalali date string."""
     if not dt:
         return ""
-    try:
-        jd = jdatetime.date.fromgregorian(date=dt)
-        return jd.strftime("%Y/%m/%d")
-    except:
-        return str(dt)
+    if isinstance(dt, datetime):
+        dt = dt.date()
+    jd = jdatetime.date.fromgregorian(date=dt)
+    return jd.strftime("%Y/%m/%d")
 
-def to_gregorian(jalali_date: str) -> Optional[date]:
-    """تبدیل تاریخ شمسی به میلادی"""
-    if not jalali_date:
-        return None
-    try:
-        parts = jalali_date.replace('/', '-').split('-')
-        if len(parts) == 3:
-            jd = jdatetime.date(int(parts[0]), int(parts[1]), int(parts[2]))
-            return jd.togregorian()
-    except Exception as e:
-        print(f"Error converting date: {e}")
-        return None
-    return None
+
+def to_gregorian(jalali_date: str | date | datetime | None) -> Optional[date]:
+    """Backward-compatible alias for converting Jalali input to Gregorian."""
+    return parse_jalali_date(jalali_date)
+
 
 def get_today_jalali() -> str:
-    """دریافت تاریخ امروز به شمسی"""
-    try:
-        jd = jdatetime.date.today()
-        return jd.strftime("%Y/%m/%d")
-    except:
-        return ""
+    """Return today's date in Jalali format."""
+    return jdatetime.date.today().strftime("%Y/%m/%d")
+
 
 def get_today_gregorian() -> date:
-    """دریافت تاریخ امروز به میلادی"""
+    """Return today's Gregorian date."""
     return date.today()

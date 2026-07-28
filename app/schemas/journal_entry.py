@@ -1,7 +1,8 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Optional, List
 from datetime import date, datetime
 from enum import Enum
+from app.utils.jalali import normalize_date_text, parse_jalali_date
 
 class JournalStatus(str, Enum):
     DRAFT = "DRAFT"
@@ -10,10 +11,20 @@ class JournalStatus(str, Enum):
 
 class JournalLineBase(BaseModel):
     account_id: int
-    debit: Optional[int] = None
-    credit: Optional[int] = None
+    debit: Optional[int] = Field(None, ge=0)
+    credit: Optional[int] = Field(None, ge=0)
     description: Optional[str] = None
     analytic_account_id: Optional[int] = None
+
+    @model_validator(mode="after")
+    def validate_single_sided_amount(self):
+        debit = self.debit or 0
+        credit = self.credit or 0
+        if debit <= 0 and credit <= 0:
+            raise ValueError('هر ردیف سند باید مبلغ بدهکار یا بستانکار داشته باشد')
+        if debit > 0 and credit > 0:
+            raise ValueError('هر ردیف فقط می‌تواند بدهکار یا بستانکار باشد')
+        return self
 
 class JournalLineCreate(JournalLineBase):
     pass
@@ -37,19 +48,37 @@ class JournalEntryBase(BaseModel):
     @field_validator('journal_date')
     @classmethod
     def validate_jalali_date(cls, v: str) -> str:
-        """اعتبارسنجی ساده تاریخ شمسی"""
-        import re
-        if not re.match(r'^\d{4}/\d{2}/\d{2}$', v):
-            raise ValueError('فرمت تاریخ باید YYYY/MM/DD باشد')
-        return v
+        """Validate and normalize Jalali date text before service conversion."""
+        parse_jalali_date(v)
+        normalized = normalize_date_text(v)
+        year, month, day = normalized.split('-')
+        return f"{int(year):04d}/{int(month):02d}/{int(day):02d}"
 
 class JournalEntryCreate(JournalEntryBase):
-    lines: List[JournalLineCreate] = Field(default_factory=list)
+    lines: List[JournalLineCreate] = Field(default_factory=list, min_length=2)
+
+    @model_validator(mode="after")
+    def validate_balanced_lines(self):
+        total_debit = sum(line.debit or 0 for line in self.lines)
+        total_credit = sum(line.credit or 0 for line in self.lines)
+        if total_debit != total_credit:
+            raise ValueError('جمع بدهکار و بستانکار باید برابر باشد')
+        return self
 
 class JournalEntryUpdate(BaseModel):
     journal_date: Optional[str] = None
     status: Optional[JournalStatus] = None
     description: Optional[str] = None
+
+    @field_validator('journal_date')
+    @classmethod
+    def validate_optional_jalali_date(cls, v: Optional[str]) -> Optional[str]:
+        if not v:
+            return v
+        parse_jalali_date(v)
+        normalized = normalize_date_text(v)
+        year, month, day = normalized.split('-')
+        return f"{int(year):04d}/{int(month):02d}/{int(day):02d}"
 
 class JournalEntryResponse(JournalEntryBase):
     id: int

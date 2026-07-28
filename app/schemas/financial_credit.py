@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import date, datetime
+from app.schemas.jalali import JalaliDateInput, OptionalJalaliDateInput
 from enum import Enum
 
 class CreditType(str, Enum):
@@ -23,7 +24,7 @@ class FinancialCreditBase(BaseModel):
     credit_type: CreditType
     amount: int = Field(..., gt=0, description="مبلغ اعتبار")
     status: Optional[CreditStatus] = CreditStatus.PENDING
-    credit_date: date
+    credit_date: JalaliDateInput
     description: Optional[str] = None
     reference_id: Optional[str] = None
     bank_account_id: Optional[int] = None

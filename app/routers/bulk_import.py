@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, Request, Form, File, UploadFile
 from fastapi.responses import HTMLResponse, StreamingResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from typing import Optional
 import json
@@ -9,11 +8,12 @@ from app.core.database import get_db
 from app.services.bulk_import_service import BulkImportService
 from app.services.excel_service import ExcelService
 from app.services.project_service import ProjectService
+from app.core.templates import create_templates
 from app.schemas.bulk_import import BulkImportCreate, BulkImportRow
 from app.models.bulk_import import BulkImportLog
 
 router = APIRouter(prefix="/bulk-import", tags=["Bulk Import"])
-templates = Jinja2Templates(directory="app/templates")
+templates = create_templates()
 
 @router.get("/", response_class=HTMLResponse)
 async def bulk_import_main(request: Request, db: Session = Depends(get_db)):
@@ -90,11 +90,10 @@ async def save_bulk_import(request: Request, db: Session = Depends(get_db)):
                     "description": form.get(f"rows[{i}][description]")
                 })
         
-        from datetime import datetime
         data = BulkImportCreate(
             import_type=form.get("import_type"),
             project_id=int(form.get("project_id")),
-            document_date=datetime.strptime(form.get("document_date"), "%Y-%m-%d").date(),
+            document_date=form.get("document_date"),
             document_description=form.get("document_description"),
             debit_type=form.get("debit_type"),
             credit_type=form.get("credit_type"),

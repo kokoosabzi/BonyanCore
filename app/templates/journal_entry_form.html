@@ -4,8 +4,7 @@
 {% block form_title %}ثبت سند حسابداری{% endblock %}
 
 {% block form_content %}
-<form method="post" action="/api/v1/journal-entries/" id="journalForm">
-    <input type="hidden" name="status" value="DRAFT">
+<form id="journalForm">
     
     <!-- سربرگ سند -->
     <div class="card mb-4">
@@ -25,7 +24,7 @@
                 </div>
                 <div class="col-md-4 mb-3">
                     <label class="form-label">وضعیت</label>
-                    <select name="status" class="form-select">
+                    <select name="status" class="form-select" id="journalStatus">
                         <option value="DRAFT" selected>پیش‌نویس</option>
                         <option value="POSTED">ثبت شده</option>
                     </select>
@@ -251,24 +250,63 @@
     // ثبت نهایی
     document.getElementById('postBtn').addEventListener('click', function(e) {
         e.preventDefault();
-        const form = document.getElementById('journalForm');
-        const statusInput = form.querySelector('input[name="status"]');
-        if (statusInput) {
-            statusInput.value = 'POSTED';
-        }
-        if (validateForm()) {
-            form.submit();
-        }
+        document.getElementById('journalStatus').value = 'POSTED';
+        submitJournal();
     });
 
     // ذخیره پیش‌نویس
     document.getElementById('saveBtn').addEventListener('click', function(e) {
-        const form = document.getElementById('journalForm');
-        const statusInput = form.querySelector('input[name="status"]');
-        if (statusInput) {
-            statusInput.value = 'DRAFT';
-        }
+        e.preventDefault();
+        document.getElementById('journalStatus').value = 'DRAFT';
+        submitJournal();
     });
+
+
+
+    document.getElementById('journalForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        submitJournal();
+    });
+
+    function buildPayload() {
+        const lines = [];
+        document.querySelectorAll('#linesBody tr').forEach(function(row) {
+            const accountId = row.querySelector('select[name$="[account_id]"]')?.value;
+            const debit = parseInt(row.querySelector('input[name$="[debit]"]')?.value || 0, 10);
+            const credit = parseInt(row.querySelector('input[name$="[credit]"]')?.value || 0, 10);
+            if (accountId) {
+                lines.push({
+                    account_id: parseInt(accountId, 10),
+                    description: row.querySelector('input[name$="[description]"]')?.value || null,
+                    debit: debit > 0 ? debit : null,
+                    credit: credit > 0 ? credit : null
+                });
+            }
+        });
+
+        return {
+            journal_date: document.querySelector('input[name="journal_date"]').value,
+            status: document.getElementById('journalStatus').value,
+            reference_type: document.querySelector('select[name="reference_type"]').value || null,
+            description: document.querySelector('input[name="description"]').value || null,
+            lines: lines
+        };
+    }
+
+    async function submitJournal() {
+        if (!validateForm()) return;
+        const response = await fetch('/api/v1/journal-entries/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(buildPayload())
+        });
+        if (response.ok) {
+            window.location.href = '/api/v1/journal-entries/list';
+            return;
+        }
+        const error = await response.json().catch(() => ({}));
+        alert(error.detail || 'خطا در ثبت سند حسابداری');
+    }
 
     function validateForm() {
         const rows = document.querySelectorAll('#linesBody tr');
@@ -279,20 +317,27 @@
         
         let totalDebit = 0;
         let totalCredit = 0;
-        let hasAccount = false;
+        let validRows = 0;
+        let invalidMixedRows = false;
         
         rows.forEach(function(row) {
             const account = row.querySelector('select[name$="[account_id]"]')?.value;
             const debit = parseFloat(row.querySelector('input[name$="[debit]"]')?.value || 0);
             const credit = parseFloat(row.querySelector('input[name$="[credit]"]')?.value || 0);
             
-            if (account) hasAccount = true;
+            if (account && (debit > 0 || credit > 0)) validRows++;
+            if (debit > 0 && credit > 0) invalidMixedRows = true;
             totalDebit += debit;
             totalCredit += credit;
         });
         
-        if (!hasAccount) {
-            alert('حداقل یک ردیف باید حساب داشته باشد.');
+        if (validRows < 2) {
+            alert('حداقل دو ردیف معتبر برای سند حسابداری لازم است.');
+            return false;
+        }
+
+        if (invalidMixedRows) {
+            alert('هر ردیف فقط می‌تواند بدهکار یا بستانکار باشد.');
             return false;
         }
         

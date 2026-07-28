@@ -35,8 +35,8 @@
             </div>
             <div class="col-md-6 mb-3">
                 <label class="form-label">تاریخ تولد</label>
-                <input type="date" name="birth_date" class="form-control"
-                       value="{{ customer.birth_date }}">
+                <input type="text" name="birth_date" class="form-control jalali-date-picker" placeholder="1404/05/03"
+                       value="{{ customer.birth_date|jalali }}">
             </div>
         </div>
         <div class="row">

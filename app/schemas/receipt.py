@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional
 from datetime import date, datetime
+from app.schemas.jalali import JalaliDateInput, OptionalJalaliDateInput
 from enum import Enum
 
 class PaymentMethod(str, Enum):
@@ -20,11 +21,11 @@ class ReceiptBase(BaseModel):
     project_id: int
     contract_id: Optional[int] = None
     amount: int
-    receipt_date: date
+    receipt_date: JalaliDateInput
     payment_method: PaymentMethod
     bank_account_id: Optional[int] = None
     cheque_no: Optional[str] = None
-    cheque_due_date: Optional[date] = None
+    cheque_due_date: OptionalJalaliDateInput = None
     description: Optional[str] = None
     status: Optional[ReceiptStatus] = ReceiptStatus.DRAFT
 
@@ -33,11 +34,11 @@ class ReceiptCreate(ReceiptBase):
 
 class ReceiptUpdate(BaseModel):
     amount: Optional[int] = None
-    receipt_date: Optional[date] = None
+    receipt_date: OptionalJalaliDateInput = None
     payment_method: Optional[PaymentMethod] = None
     bank_account_id: Optional[int] = None
     cheque_no: Optional[str] = None
-    cheque_due_date: Optional[date] = None
+    cheque_due_date: OptionalJalaliDateInput = None
     description: Optional[str] = None
     status: Optional[ReceiptStatus] = None
 
@@ -46,7 +47,7 @@ class ReceiptResponse(ReceiptBase):
     receipt_no: str
     operator_id: Optional[int] = None
     confirmed_by: Optional[int] = None
-    confirmed_at: Optional[date] = None
+    confirmed_at: OptionalJalaliDateInput = None
     journal_entry_id: Optional[int] = None
     created_at: datetime
     updated_at: datetime

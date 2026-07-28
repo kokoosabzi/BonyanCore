@@ -20,3 +20,11 @@ class JournalLine(BaseModel):
     journal = relationship("JournalEntry", back_populates="lines")
     account = relationship("Account")
     analytic_account = relationship("AnalyticAccount")
+
+    @property
+    def debit(self) -> int | None:
+        return self.amount if self.debit_credit == DebitCredit.DEBIT else None
+
+    @property
+    def credit(self) -> int | None:
+        return self.amount if self.debit_credit == DebitCredit.CREDIT else None

@@ -27,8 +27,8 @@
     </div>
     <div class="col-md-6 mb-3">
         <label class="form-label">تاریخ پایان</label>
-        <input type="date" name="end_date" class="form-control"
-               value="{{ contract.end_date if contract else '' }}">
+        <input type="text" name="end_date" class="form-control jalali-date-picker" placeholder="1404/05/03"
+               value="{{ contract.end_date|jalali if contract else '' }}">
     </div>
 </div>
 <div class="mb-3">

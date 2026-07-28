@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Form, status, Query
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from typing import Optional
@@ -9,11 +8,12 @@ import jwt
 from app.core.database import get_db
 from app.services.auth_service import AuthService
 from app.services.role_service import RoleService
+from app.core.templates import create_templates
 from app.schemas.auth import UserCreate, UserLogin, UserResponse, ChangePassword
 from app.utils.security import create_access_token, decode_access_token
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
-templates = Jinja2Templates(directory="app/templates")
+templates = create_templates()
 
 # ============================================================
 # API Routes
