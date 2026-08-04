@@ -8,7 +8,7 @@
 <div class="row">
     <div class="col-md-6 mb-3">
         <label class="form-label required">پروژه</label>
-        <select name="project_id" class="form-select" required>
+        <select name="project_id" class="form-select" required {% if unit %}disabled{% endif %}>
             <option value="">انتخاب پروژه...</option>
             {% for project in projects %}
             <option value="{{ project.id }}" {% if unit and unit.project_id == project.id %}selected{% endif %}>
@@ -37,7 +37,7 @@
     </div>
     <div class="col-md-4 mb-3">
         <label class="form-label">شماره واحد</label>
-        <input type="text" name="unit_number" class="form-control"
+        <input type="text" name="unit_number" class="form-control" required
                value="{{ unit.unit_number if unit else '' }}">
     </div>
 </div>

@@ -34,7 +34,10 @@
             </td>
             <td>
                 <a href="/pages/memberships/{{ member.id }}/edit" class="btn btn-sm btn-primary">ویرایش</a>
-                <a href="/pages/memberships/{{ member.id }}/delete" class="btn btn-sm btn-danger">حذف</a>
+                <button type="submit"
+                        formaction="/pages/memberships/{{ member.id }}/delete"
+                        formmethod="post"
+                        class="btn btn-sm btn-danger">حذف</button>
             </td>
         </tr>
         {% endfor %}

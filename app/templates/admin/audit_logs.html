@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block page_icon %}journal-text{% endblock %}
+{% block page_title %}لاگ تغییرات سیستم{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>آخرین تغییرات ثبت‌شده</span>
+        <span class="badge bg-secondary">{{ logs|length }} رویداد</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>زمان</th>
+                        <th>کاربر</th>
+                        <th>عملیات</th>
+                        <th>جدول</th>
+                        <th>شناسه رکورد</th>
+                        <th>نشانی IP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td dir="ltr">{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        <td>{{ log.username or 'system' }}</td>
+                        <td><span class="badge bg-secondary">{{ log.operation }}</span></td>
+                        <td><code>{{ log.table_name }}</code></td>
+                        <td>{{ log.record_id }}</td>
+                        <td dir="ltr">{{ log.ip_address or '-' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">هنوز رویدادی ثبت نشده است.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

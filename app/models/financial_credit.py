@@ -31,9 +31,17 @@ class FinancialCredit(BaseModel):
     reference_id = Column(String(100), nullable=True)
     bank_account_id = Column(BigInteger, ForeignKey("bank_accounts.id"), nullable=True)
     cheque_no = Column(String(50), nullable=True)
+    receipt_id = Column(BigInteger, ForeignKey("receipts.id"), nullable=True, unique=True)
+    journal_entry_id = Column(
+        BigInteger,
+        ForeignKey("journal_entries.id"),
+        nullable=True,
+    )
 
     # Relationships
     customer = relationship("Customer")
     project = relationship("Project")
     contract = relationship("Contract")
     bank_account = relationship("BankAccount")
+    receipt = relationship("Receipt", back_populates="financial_credit")
+    journal_entry = relationship("JournalEntry")

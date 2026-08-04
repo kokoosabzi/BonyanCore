@@ -18,7 +18,6 @@
                     <tr>
                         <th>نام کاربری</th>
                         <th>نام کامل</th>
-                        <th>ایمیل</th>
                         <th>نقش</th>
                         <th>وضعیت</th>
                         <th>آخرین ورود</th>
@@ -30,7 +29,6 @@
                     <tr>
                         <td><code>{{ user.username }}</code></td>
                         <td>{{ user.full_name }}</td>
-                        <td>{{ user.email or '-' }}</td>
                         <td>{{ user.role.name if user.role else '-' }}</td>
                         <td>
                             {% if user.is_active %}

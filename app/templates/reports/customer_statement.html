@@ -11,9 +11,11 @@
             <button onclick="window.print()" class="btn btn-light btn-sm">
                 <i class="bi bi-printer"></i> چاپ
             </button>
-            <a href="/reports/customer-statement/excel?customer_id={{ customer_id }}" class="btn btn-light btn-sm">
+            {% if customer_id %}
+            <a href="/reports/customer-statement/excel?customer_id={{ customer_id }}{% if from_date %}&from_date={{ from_date }}{% endif %}{% if to_date %}&to_date={{ to_date }}{% endif %}" class="btn btn-light btn-sm">
                 <i class="bi bi-file-excel"></i> Excel
             </a>
+            {% endif %}
         </div>
     </div>
     <div class="card-body">

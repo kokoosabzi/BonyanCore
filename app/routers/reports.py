@@ -7,6 +7,7 @@ import pandas as pd
 from datetime import date
 
 from app.core.database import get_db
+from app.models.financial_obligation import FinancialObligation
 from app.services.report_service import ReportService
 from app.services.customer_service import CustomerService
 from app.services.project_service import ProjectService
@@ -67,6 +68,8 @@ async def customer_statement_page(
 @router.get("/customer-statement/excel")
 async def customer_statement_excel(
     customer_id: int = Query(...),
+    from_date: Optional[str] = Query(None),
+    to_date: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
     report = ReportService.get_customer_statement(db, customer_id, parse_jalali_date(from_date), parse_jalali_date(to_date))
@@ -154,6 +157,43 @@ async def project_summary_excel(
         output,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f"attachment; filename=project_summary_{project_id}.xlsx"}
+    )
+
+@router.get("/bank/excel")
+async def bank_report_excel(
+    account_id: int = Query(...),
+    from_date: Optional[str] = Query(None),
+    to_date: Optional[str] = Query(None),
+    db: Session = Depends(get_db)
+):
+    report = ReportService.get_bank_report(
+        db,
+        account_id,
+        parse_jalali_date(from_date),
+        parse_jalali_date(to_date),
+    )
+    if "error" in report:
+        raise HTTPException(status_code=404, detail=report["error"])
+
+    data = [
+        {
+            "تاریخ": transaction["date"],
+            "نوع": transaction["type"],
+            "شرح": transaction["description"],
+            "مبلغ": transaction["amount"],
+            "مانده": transaction["balance"],
+        }
+        for transaction in report["transactions"]
+    ]
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        pd.DataFrame(data).to_excel(writer, index=False, sheet_name="گزارش بانک")
+    output.seek(0)
+
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename=bank_report_{account_id}.xlsx"},
     )
 
 # ============================================================

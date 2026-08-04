@@ -1,56 +1,100 @@
-{% extends "base_form.html" %}
+{% extends "base.html" %}
 
-{% block title %}لیست فیش‌ها{% endblock %}
-{% block form_title %}لیست فیش‌های ثبت‌شده{% endblock %}
-{% block cancel_url %}/pages{% endblock %}
+{% block page_icon %}cash-coin{% endblock %}
+{% block page_title %}فیش‌های دریافت{% endblock %}
 
-{% block form_body %}
-<div class="d-flex justify-content-between mb-3">
-    <a href="/pages/receipts/create" class="btn btn-success">💰 ثبت فیش جدید</a>
+{% block content %}
+<div class="d-flex justify-content-end mb-3">
+    <a href="/pages/receipts/create" class="btn btn-success">
+        <i class="bi bi-plus-lg ms-1"></i>
+        ثبت فیش
+    </a>
 </div>
 
-<table class="table table-striped table-hover">
-    <thead>
-        <tr>
-            <th>شماره فیش</th>
-            <th>مشتری</th>
-            <th>پروژه</th>
-            <th>مبلغ (ریال)</th>
-            <th>تاریخ</th>
-            <th>روش پرداخت</th>
-            <th>وضعیت</th>
-            <th>عملیات</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for receipt in receipts %}
-        <tr>
-            <td><strong>{{ receipt.receipt_no }}</strong></td>
-            <td>{{ receipt.customer.full_name }}</td>
-            <td>{{ receipt.project.name }}</td>
-            <td>{{ "{:,.0f}".format(receipt.amount) }}</td>
-            <td>{{ receipt.receipt_date }}</td>
-            <td>
-                {% if receipt.payment_method == 'CASH' %}نقد
-                {% elif receipt.payment_method == 'CHEQUE' %}چک
-                {% elif receipt.payment_method == 'TRANSFER' %}انتقال بانکی
-                {% else %}کارتخوان{% endif %}
-            </td>
-            <td>
-                {% if receipt.status == 'CONFIRMED' %}
-                <span class="badge bg-success">تأیید شده</span>
-                {% elif receipt.status == 'DRAFT' %}
-                <span class="badge bg-warning">پیش‌نویس</span>
-                {% else %}
-                <span class="badge bg-danger">لغو شده</span>
-                {% endif %}
-            </td>
-            <td>
-                <a href="/pages/receipts/{{ receipt.id }}/edit" class="btn btn-sm btn-primary">ویرایش</a>
-                <a href="/pages/receipts/{{ receipt.id }}/delete" class="btn btn-sm btn-danger">حذف</a>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>شماره فیش</th>
+                        <th>مشتری</th>
+                        <th>پروژه</th>
+                        <th>مبلغ</th>
+                        <th>تاریخ</th>
+                        <th>روش پرداخت</th>
+                        <th>وضعیت</th>
+                        <th>عملیات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for receipt in receipts %}
+                    <tr>
+                        <td><strong>{{ receipt.receipt_no }}</strong></td>
+                        <td>{{ receipt.customer.full_name }}</td>
+                        <td>{{ receipt.project.name }}</td>
+                        <td>
+                            <div>{{ "{:,.0f}".format(receipt.amount) }} ریال</div>
+                            <small class="text-muted">{{ receipt.amount_in_words }}</small>
+                        </td>
+                        <td>{{ receipt.receipt_date|jalali }}</td>
+                        <td>
+                            {% if receipt.payment_method == 'CASH' %}نقد
+                            {% elif receipt.payment_method == 'CHEQUE' %}چک
+                            {% elif receipt.payment_method == 'DEPOSIT_SLIP' %}فیش واریز
+                            {% elif receipt.payment_method == 'TRANSFER' %}انتقال بانکی
+                            {% elif receipt.payment_method == 'POS' %}کارتخوان
+                            {% else %}سایر{% endif %}
+                        </td>
+                        <td>
+                            {% if receipt.status == 'CONFIRMED' %}
+                            <span class="badge bg-success">تأییدشده</span>
+                            {% elif receipt.status == 'DRAFT' %}
+                            <span class="badge bg-warning">پیش‌نویس</span>
+                            {% else %}
+                            <span class="badge bg-danger">لغوشده</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                {% if receipt.status == 'DRAFT' %}
+                                <a href="/pages/receipts/{{ receipt.id }}/edit"
+                                   class="btn btn-sm btn-primary"
+                                   title="ویرایش">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form method="post"
+                                      action="/pages/receipts/{{ receipt.id }}/confirm"
+                                      onsubmit="return confirm('فیش تأیید و در حسابداری ثبت شود؟')">
+                                    <button type="submit"
+                                            class="btn btn-sm btn-success"
+                                            title="تأیید و ثبت مالی">
+                                        <i class="bi bi-check-lg"></i>
+                                    </button>
+                                </form>
+                                <form method="post"
+                                      action="/pages/receipts/{{ receipt.id }}/delete"
+                                      onsubmit="return confirm('فیش پیش‌نویس حذف شود؟')">
+                                    <button type="submit"
+                                            class="btn btn-sm btn-danger"
+                                            title="حذف">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                                {% else %}
+                                <span class="text-muted">سند {{ receipt.journal_entry.journal_no if receipt.journal_entry else receipt.journal_entry_id }}</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-4">فیشی ثبت نشده است.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 {% endblock %}

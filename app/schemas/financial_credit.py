@@ -43,6 +43,8 @@ class FinancialCreditUpdate(BaseModel):
 class FinancialCreditResponse(FinancialCreditBase):
     id: int
     credit_no: str
+    receipt_id: Optional[int] = None
+    journal_entry_id: Optional[int] = None
     created_at: datetime
     updated_at: datetime
 

@@ -10,3 +10,5 @@ from app.routers.journal_entry import router as journal_entry_router
 from app.routers.cheque_book import router as cheque_book_router
 from app.routers.auth import router as auth_router
 from app.routers.reports import router as reports_router
+from app.routers.transfer import router as transfer_router
+from app.routers.receipt import router as receipt_router
