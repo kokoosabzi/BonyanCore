@@ -8,6 +8,8 @@ from app.models import (
     Receipt, Payment, BankAccount, BankStatement,
     JournalEntry, JournalLine
 )
+from app.models.financial_obligation import ObligationStatus
+from app.models.financial_credit import CreditStatus
 from app.services.financial_obligation_service import FinancialObligationService
 from app.services.financial_credit_service import FinancialCreditService
 
@@ -40,32 +42,54 @@ class ReportService:
         if not customer:
             return {"error": "مشتری پیدا نشد"}
 
-        # بدهی‌ها
+        # Only active obligations and approved credits affect a customer's
+        # financial balance. Draft, cancelled, pending, and reversed records
+        # must not appear as posted financial movements.
         obligations = db.query(FinancialObligation).filter(
             FinancialObligation.customer_id == customer_id,
-            FinancialObligation.is_deleted == False
+            FinancialObligation.is_deleted == False,
+            FinancialObligation.status != ObligationStatus.CANCELLED,
         )
         obligation_effective_date = func.coalesce(
             FinancialObligation.due_date, func.date(FinancialObligation.created_at)
         )
+
+        credits = db.query(FinancialCredit).filter(
+            FinancialCredit.customer_id == customer_id,
+            FinancialCredit.is_deleted == False,
+            FinancialCredit.status == CreditStatus.APPROVED,
+        )
+
+        # A range report must begin with movements recorded before its first
+        # day; otherwise every running balance in the selected period starts
+        # from zero and is financially misleading.
+        opening_obligations = []
+        opening_credits = []
+        if from_date:
+            opening_obligations = obligations.filter(
+                obligation_effective_date < from_date
+            ).all()
+            opening_credits = credits.filter(
+                FinancialCredit.credit_date < from_date
+            ).all()
+
         if from_date:
             obligations = obligations.filter(obligation_effective_date >= from_date)
         if to_date:
             obligations = obligations.filter(obligation_effective_date <= to_date)
         obligations = obligations.all()
 
-        # اعتبارات
-        credits = db.query(FinancialCredit).filter(
-            FinancialCredit.customer_id == customer_id,
-            FinancialCredit.is_deleted == False
-        )
         if from_date:
             credits = credits.filter(FinancialCredit.credit_date >= from_date)
         if to_date:
             credits = credits.filter(FinancialCredit.credit_date <= to_date)
         credits = credits.all()
 
-        # محاسبه مجموع
+        opening_debit = sum(o.amount - o.paid_amount for o in opening_obligations)
+        opening_credit = sum(c.amount for c in opening_credits)
+        opening_balance = opening_debit - opening_credit
+
+        # محاسبه مجموع دوره
         total_obligations = sum([o.amount - o.paid_amount for o in obligations])
         total_credits = sum([c.amount for c in credits])
 
@@ -94,7 +118,7 @@ class ReportService:
         transactions.sort(key=lambda x: x["date"])
 
         # محاسبه مانده
-        running_balance = 0
+        running_balance = opening_balance
         for t in transactions:
             running_balance += t["debit"] - t["credit"]
             t["balance"] = running_balance
@@ -102,9 +126,13 @@ class ReportService:
         return {
             "customer": customer,
             "transactions": transactions,
+            "opening_debit": opening_debit,
+            "opening_credit": opening_credit,
+            "opening_balance": opening_balance,
             "total_obligations": total_obligations,
             "total_credits": total_credits,
-            "net_balance": total_obligations - total_credits,
+            "period_balance": total_obligations - total_credits,
+            "net_balance": running_balance,
             "total_debit": sum([t["debit"] for t in transactions]),
             "total_credit": sum([t["credit"] for t in transactions])
         }

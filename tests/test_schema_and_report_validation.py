@@ -1,4 +1,5 @@
 from datetime import date
+import inspect
 
 import pytest
 
@@ -28,3 +29,12 @@ def test_report_date_range_is_validated_in_service_layer():
 
     with pytest.raises(ValueError, match="معتبر نیست"):
         ReportService._validate_date_range("2025-07-25", None)
+
+
+def test_customer_statement_source_uses_opening_balance_and_posted_statuses():
+    source = inspect.getsource(ReportService.get_customer_statement)
+    assert "opening_balance" in source
+    assert "opening_debit" in source
+    assert "opening_credit" in source
+    assert "ObligationStatus.CANCELLED" in source
+    assert "CreditStatus.APPROVED" in source

@@ -12,7 +12,7 @@ from app.services.customer_service import CustomerService
 from app.services.project_service import ProjectService
 from app.services.bank_account_service import BankAccountService
 from app.core.templates import create_templates
-from app.utils.jalali import get_today_jalali, parse_jalali_date
+from app.utils.jalali import get_today_jalali, parse_jalali_date, to_jalali
 from app.models.financial_obligation import FinancialObligation
 
 router = APIRouter(prefix="/reports", tags=["Reports"])
@@ -95,10 +95,17 @@ async def customer_statement_excel(
         raise HTTPException(status_code=404, detail=report["error"])
 
     # ایجاد DataFrame
-    data = []
+    data = [{
+        "تاریخ": to_jalali(parsed_from) if parsed_from else "",
+        "نوع": "OPENING_BALANCE",
+        "شرح": "مانده ابتدای دوره",
+        "بدهکار": report["opening_debit"],
+        "بستانکار": report["opening_credit"],
+        "مانده": report["opening_balance"],
+    }]
     for t in report["transactions"]:
         data.append({
-            "تاریخ": t["date"],
+            "تاریخ": to_jalali(t["date"]),
             "نوع": t["type"],
             "شرح": t["description"],
             "بدهکار": t["debit"],
