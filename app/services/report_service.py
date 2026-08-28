@@ -10,6 +10,8 @@ from app.models import (
 )
 from app.models.financial_obligation import ObligationStatus
 from app.models.financial_credit import CreditStatus
+from app.models.receipt import ReceiptStatus
+from app.models.payment import PaymentStatus
 from app.services.financial_obligation_service import FinancialObligationService
 from app.services.financial_credit_service import FinancialCreditService
 
@@ -216,7 +218,8 @@ class ReportService:
 
         deposits = db.query(Receipt).filter(
             Receipt.bank_account_id == account_id,
-            Receipt.is_deleted == False
+            Receipt.is_deleted == False,
+            Receipt.status == ReceiptStatus.CONFIRMED,
         )
         if from_date:
             deposits = deposits.filter(Receipt.receipt_date >= from_date)
@@ -226,7 +229,8 @@ class ReportService:
 
         withdrawals = db.query(Payment).filter(
             Payment.bank_account_id == account_id,
-            Payment.is_deleted == False
+            Payment.is_deleted == False,
+            Payment.status == PaymentStatus.CONFIRMED,
         )
         if from_date:
             withdrawals = withdrawals.filter(Payment.payment_date >= from_date)
@@ -240,17 +244,19 @@ class ReportService:
                 "date": d.receipt_date,
                 "description": d.description or "واریز",
                 "type": "DEPOSIT",
-                "amount": d.amount
+                "amount": d.amount,
+                "source_id": d.id,
             })
         for w in withdrawals:
             transactions.append({
                 "date": w.payment_date,
                 "description": w.description or "برداشت",
                 "type": "WITHDRAWAL",
-                "amount": w.amount
+                "amount": w.amount,
+                "source_id": w.id,
             })
 
-        transactions.sort(key=lambda x: x["date"])
+        transactions.sort(key=lambda x: (x["date"], x["source_id"]))
 
         balance = 0
         for t in transactions:
@@ -290,20 +296,26 @@ class ReportService:
             BankStatement.is_deleted == False
         )
         if statement_date:
-            statements = statements.filter(BankStatement.statement_date == statement_date)
-        statements = statements.all()
+            statements = statements.filter(BankStatement.statement_date <= statement_date)
+        statements = statements.order_by(
+            BankStatement.statement_date.asc(), BankStatement.id.asc()
+        ).all()
 
-        receipts = db.query(Receipt).filter(
+        receipts_query = db.query(Receipt).filter(
             Receipt.bank_account_id == account_id,
             Receipt.is_deleted == False,
-            Receipt.status == "CONFIRMED"
-        ).all()
-
-        payments = db.query(Payment).filter(
+            Receipt.status == ReceiptStatus.CONFIRMED,
+        )
+        payments_query = db.query(Payment).filter(
             Payment.bank_account_id == account_id,
             Payment.is_deleted == False,
-            Payment.status == "CONFIRMED"
-        ).all()
+            Payment.status == PaymentStatus.CONFIRMED,
+        )
+        if statement_date:
+            receipts_query = receipts_query.filter(Receipt.receipt_date <= statement_date)
+            payments_query = payments_query.filter(Payment.payment_date <= statement_date)
+        receipts = receipts_query.all()
+        payments = payments_query.all()
 
         system_balance = 0
         for r in receipts:
@@ -311,26 +323,74 @@ class ReportService:
         for p in payments:
             system_balance -= p.amount
 
-        bank_balance = 0
-        if statements:
-            bank_balance = statements[-1].balance if statements else 0
+        bank_balance = (statements[-1].balance or 0) if statements else 0
 
-        unrecorded = []
+        system_movements = []
         for r in receipts:
-            if r.bank_account_id == account_id:
-                unrecorded.append({
-                    "date": r.receipt_date,
-                    "description": r.description or "واریز ثبت شده",
-                    "amount": r.amount,
-                    "type": "DEPOSIT",
-                    "status": "در سیستم ثبت شده"
+            system_movements.append({
+                "id": r.id,
+                "date": r.receipt_date,
+                "description": r.description or "واریز ثبت شده",
+                "amount": r.amount,
+                "type": "DEPOSIT",
+                "references": {r.receipt_no, r.cheque_no} - {None, ""},
+            })
+        for payment in payments:
+            system_movements.append({
+                "id": payment.id,
+                "date": payment.payment_date,
+                "description": payment.description or "برداشت ثبت شده",
+                "amount": payment.amount,
+                "type": "WITHDRAWAL",
+                "references": {payment.payment_no, payment.cheque_no} - {None, ""},
+            })
+        system_movements.sort(key=lambda item: (item["date"], item["id"]))
+
+        unmatched_system = list(system_movements)
+        unmatched_bank = []
+        matched_count = 0
+        for statement in statements:
+            statement_type = getattr(statement.statement_type, "value", statement.statement_type)
+            candidate = None
+            if statement.reference_no:
+                candidate = next(
+                    (
+                        movement for movement in unmatched_system
+                        if statement.reference_no in movement["references"]
+                        and movement["type"] == statement_type
+                        and movement["amount"] == statement.amount
+                    ),
+                    None,
+                )
+            if candidate is None:
+                candidate = next(
+                    (
+                        movement for movement in unmatched_system
+                        if movement["date"] == statement.statement_date
+                        and movement["type"] == statement_type
+                        and movement["amount"] == statement.amount
+                    ),
+                    None,
+                )
+            if candidate is None:
+                unmatched_bank.append({
+                    "date": statement.statement_date,
+                    "description": statement.description or "تراکنش صورتحساب بانک",
+                    "amount": statement.amount,
+                    "type": statement_type,
+                    "reference_no": statement.reference_no,
                 })
+            else:
+                unmatched_system.remove(candidate)
+                matched_count += 1
 
         return {
             "account": account,
             "system_balance": system_balance,
             "bank_balance": bank_balance,
             "difference": system_balance - bank_balance,
-            "unrecorded": unrecorded,
+            "matched_count": matched_count,
+            "system_unmatched": unmatched_system,
+            "bank_unmatched": unmatched_bank,
             "statement_count": len(statements)
         }

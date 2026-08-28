@@ -38,3 +38,14 @@ def test_customer_statement_source_uses_opening_balance_and_posted_statuses():
     assert "opening_credit" in source
     assert "ObligationStatus.CANCELLED" in source
     assert "CreditStatus.APPROVED" in source
+
+
+def test_bank_report_and_reconciliation_source_require_confirmed_movements():
+    assert "ReceiptStatus.CONFIRMED" in inspect.getsource(ReportService.get_bank_report)
+    assert "PaymentStatus.CONFIRMED" in inspect.getsource(ReportService.get_bank_report)
+
+    source = inspect.getsource(ReportService.get_bank_reconciliation)
+    assert "order_by" in source
+    assert "matched_count" in source
+    assert "system_unmatched" in source
+    assert "bank_unmatched" in source

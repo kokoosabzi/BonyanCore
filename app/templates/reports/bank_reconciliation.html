@@ -27,7 +27,7 @@
                 </select>
             </div>
             <div class="col-md-4">
-                <label class="form-label">تاریخ صورتحساب</label>
+                <label class="form-label">مغایرت تا تاریخ</label>
                 <input type="text" name="statement_date" class="form-control jalali-date-picker" 
                        value="{{ statement_date }}">
             </div>
@@ -50,7 +50,7 @@
 
         <!-- مغایرت -->
         <div class="row g-3 mb-4">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="card text-center bg-success text-white">
                     <div class="card-body">
                         <h6>مانده سیستم</h6>
@@ -58,7 +58,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="card text-center bg-primary text-white">
                     <div class="card-body">
                         <h6>مانده بانک</h6>
@@ -66,7 +66,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="card text-center {% if difference == 0 %}bg-success{% else %}bg-danger{% endif %} text-white">
                     <div class="card-body">
                         <h6>مغایرت</h6>
@@ -74,11 +74,19 @@
                     </div>
                 </div>
             </div>
+            <div class="col-md-3">
+                <div class="card text-center bg-info text-white">
+                    <div class="card-body">
+                        <h6>تطبیق‌شده</h6>
+                        <h3>{{ matched_count }}</h3>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- تراکنش‌های ثبت نشده -->
-        <div class="mt-4">
-            <h6>تراکنش‌های ثبت نشده در صورت‌حساب</h6>
+        <!-- تراکنش‌های سیستم که در صورت‌حساب بانک دیده نشده‌اند -->
+        <div class="mt-4 mb-4">
+            <h6>ثبت‌شده در سیستم، یافت‌نشده در صورت‌حساب بانک</h6>
             <div class="table-responsive">
                 <table class="table table-striped table-hover">
                     <thead>
@@ -91,7 +99,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for item in unrecorded %}
+                        {% for item in system_unmatched %}
                         <tr>
                             <td>{{ item.date|jalali }}</td>
                             <td>{{ item.description }}</td>
@@ -103,7 +111,42 @@
                                 <span class="badge bg-danger">برداشت</span>
                                 {% endif %}
                             </td>
-                            <td><span class="badge bg-warning">{{ item.status }}</span></td>
+                            <td><span class="badge bg-warning">نیازمند بررسی</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- تراکنش‌های بانک که در سیستم پیدا نشده‌اند -->
+        <div class="mt-4">
+            <h6>ثبت‌شده در صورت‌حساب بانک، یافت‌نشده در سیستم</h6>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>تاریخ</th>
+                            <th>شرح</th>
+                            <th>شماره مرجع</th>
+                            <th>مبلغ</th>
+                            <th>نوع</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in bank_unmatched %}
+                        <tr>
+                            <td>{{ item.date|jalali }}</td>
+                            <td>{{ item.description }}</td>
+                            <td>{{ item.reference_no or '-' }}</td>
+                            <td>{{ "{:,.0f}".format(item.amount) }}</td>
+                            <td>
+                                {% if item.type == 'DEPOSIT' %}
+                                <span class="badge bg-success">واریز</span>
+                                {% else %}
+                                <span class="badge bg-danger">برداشت</span>
+                                {% endif %}
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
