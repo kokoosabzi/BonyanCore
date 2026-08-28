@@ -1,19 +1,36 @@
-from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler
+from datetime import date
+from typing import Annotated, Any, Optional
+
+from pydantic import BeforeValidator, GetCoreSchemaHandler, GetJsonSchemaHandler
 from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema, core_schema
-from typing import Any, Optional
-from datetime import date
+
+from app.utils.jalali import parse_jalali_date, to_jalali
 from app.utils.jalali_date import JalaliDate
 
+
+def parse_date_input(value: Any) -> Optional[date]:
+    """Pydantic pre-validator accepting Jalali strings and Python dates."""
+    return parse_jalali_date(value)
+
+
+JalaliDateInput = Annotated[date, BeforeValidator(parse_date_input)]
+OptionalJalaliDateInput = Annotated[Optional[date], BeforeValidator(parse_date_input)]
+
+
 class JalaliDateType:
-    """نوع Pydantic برای تاریخ شمسی"""
+    """Pydantic custom type for keeping a JalaliDate object in schemas."""
 
     @classmethod
     def __get_pydantic_core_schema__(cls, source_type: Any, handler: GetCoreSchemaHandler) -> CoreSchema:
-        return core_schema.union_schema([
-            core_schema.is_instance_schema(JalaliDate),
-            core_schema.str_schema(),
-        ], custom_error_type="jalali_date_type")
+        return core_schema.no_info_after_validator_function(
+            cls.validate,
+            core_schema.union_schema([
+                core_schema.is_instance_schema(JalaliDate),
+                core_schema.str_schema(),
+                core_schema.date_schema(),
+            ]),
+        )
 
     @classmethod
     def __get_pydantic_json_schema__(cls, core_schema: CoreSchema, handler: GetJsonSchemaHandler) -> JsonSchemaValue:
@@ -30,3 +47,7 @@ class JalaliDateType:
         if isinstance(value, date):
             return JalaliDate.from_gregorian(value)
         raise ValueError(f"Cannot convert {value} to JalaliDate")
+
+
+def serialize_jalali(value: date | None) -> str:
+    return to_jalali(value)

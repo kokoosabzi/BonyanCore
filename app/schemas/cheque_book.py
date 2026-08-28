@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import date, datetime
+from app.schemas.jalali import JalaliDateInput, OptionalJalaliDateInput
 from enum import Enum
 
 class ChequeStatus(str, Enum):
@@ -11,7 +12,7 @@ class ChequeStatus(str, Enum):
 class ChequeBase(BaseModel):
     cheque_no: str = Field(..., max_length=20)
     amount: Optional[int] = None
-    due_date: Optional[date] = None
+    due_date: OptionalJalaliDateInput = None
     payee: Optional[str] = Field(None, max_length=200)
     status: Optional[ChequeStatus] = ChequeStatus.AVAILABLE
     description: Optional[str] = None
@@ -36,7 +37,7 @@ class ChequeBookBase(BaseModel):
     total_pages: int = Field(..., gt=0)
     min_pages: Optional[int] = 0
     title: Optional[str] = Field(None, max_length=200)
-    receive_date: Optional[date] = None
+    receive_date: OptionalJalaliDateInput = None
     signatories: Optional[str] = Field(None, max_length=500)
     description: Optional[str] = None
 
@@ -45,7 +46,7 @@ class ChequeBookCreate(ChequeBookBase):
 
 class ChequeBookUpdate(BaseModel):
     title: Optional[str] = Field(None, max_length=200)
-    receive_date: Optional[date] = None
+    receive_date: OptionalJalaliDateInput = None
     signatories: Optional[str] = Field(None, max_length=500)
     description: Optional[str] = None
     status: Optional[str] = None

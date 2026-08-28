@@ -2,7 +2,7 @@
 
 {% block title %}ایجاد مشتری جدید{% endblock %}
 {% block form_title %}ایجاد مشتری جدید{% endblock %}
-{% block cancel_url %}/customers{% endblock %}
+{% block cancel_url %}/pages/customers{% endblock %}
 
 {% block form_body %}
 <div class="row">
@@ -27,8 +27,8 @@
     </div>
     <div class="col-md-6 mb-3">
         <label class="form-label">تاریخ تولد</label>
-        <input type="date" name="birth_date" class="form-control"
-               value="{{ customer.birth_date if customer else '' }}">
+        <input type="text" name="birth_date" class="form-control jalali-date-picker" placeholder="1404/05/03"
+               value="{{ customer.birth_date|jalali if customer else '' }}">
     </div>
 </div>
 <div class="row">

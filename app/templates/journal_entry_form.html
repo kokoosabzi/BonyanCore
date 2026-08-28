@@ -1,11 +1,10 @@
 {% extends "base_form.html" %}
 
-{% block title %}ثبت سند حسابداری{% endblock %}
-{% block form_title %}ثبت سند حسابداری{% endblock %}
+{% block title %}{{ "ویرایش سند حسابداری" if journal else "ثبت سند حسابداری" }}{% endblock %}
+{% block form_title %}{{ "ویرایش سند حسابداری" if journal else "ثبت سند حسابداری" }}{% endblock %}
 
 {% block form_content %}
-<form method="post" action="/api/v1/journal-entries/" id="journalForm">
-    <input type="hidden" name="status" value="DRAFT">
+<form id="journalForm">
     
     <!-- سربرگ سند -->
     <div class="card mb-4">
@@ -21,13 +20,13 @@
                 <div class="col-md-4 mb-3">
                     <label class="form-label required">تاریخ سند</label>
                     <input type="text" name="journal_date" class="form-control jalali-date-picker" 
-                           placeholder="۱۴۰۴/۰۵/۰۳" required>
+                           placeholder="۱۴۰۴/۰۵/۰۳" value="{{ journal.journal_date|jalali if journal else '' }}" required>
                 </div>
                 <div class="col-md-4 mb-3">
                     <label class="form-label">وضعیت</label>
-                    <select name="status" class="form-select">
-                        <option value="DRAFT" selected>پیش‌نویس</option>
-                        <option value="POSTED">ثبت شده</option>
+                    <select name="status" class="form-select" id="journalStatus">
+                        <option value="DRAFT" {% if not journal or journal.status == 'DRAFT' %}selected{% endif %}>پیش‌نویس</option>
+                        <option value="POSTED" {% if journal and journal.status == 'POSTED' %}selected{% endif %}>ثبت شده</option>
                     </select>
                 </div>
             </div>
@@ -35,17 +34,17 @@
                 <div class="col-md-6 mb-3">
                     <label class="form-label">نوع سند</label>
                     <select name="reference_type" class="form-select">
-                        <option value="">عمومی</option>
-                        <option value="RECEIPT">دریافت</option>
-                        <option value="PAYMENT">پرداخت</option>
-                        <option value="TRANSFER">انتقال</option>
-                        <option value="ADJUSTMENT">تعدیلی</option>
+                        <option value="" {% if not journal or not journal.reference_type %}selected{% endif %}>عمومی</option>
+                        <option value="RECEIPT" {% if journal and journal.reference_type == 'RECEIPT' %}selected{% endif %}>دریافت</option>
+                        <option value="PAYMENT" {% if journal and journal.reference_type == 'PAYMENT' %}selected{% endif %}>پرداخت</option>
+                        <option value="TRANSFER" {% if journal and journal.reference_type == 'TRANSFER' %}selected{% endif %}>انتقال</option>
+                        <option value="ADJUSTMENT" {% if journal and journal.reference_type == 'ADJUSTMENT' %}selected{% endif %}>تعدیلی</option>
                     </select>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">شرح سند</label>
                     <input type="text" name="description" class="form-control" 
-                           placeholder="شرح سند را وارد کنید">
+                           placeholder="شرح سند را وارد کنید" value="{{ journal.description if journal else '' }}">
                 </div>
             </div>
         </div>
@@ -70,6 +69,28 @@
                         </tr>
                     </thead>
                     <tbody id="linesBody">
+                        {% set existing_lines = journal.lines if journal else [] %}
+                        {% if existing_lines %}
+                        {% for line in existing_lines %}
+                        <tr>
+                            <td class="text-center">{{ loop.index }}</td>
+                            <td>
+                                <select name="lines[{{ loop.index0 }}][account_id]" class="form-select" required>
+                                    <option value="">انتخاب حساب...</option>
+                                    {% for account in accounts %}
+                                    <option value="{{ account.id }}" {% if line.account_id == account.id %}selected{% endif %}>{{ account.account_code }} - {{ account.account_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td><input type="text" name="lines[{{ loop.index0 }}][description]" class="form-control" value="{{ line.description or '' }}"></td>
+                            <td><input type="number" name="lines[{{ loop.index0 }}][debit]" class="form-control amount" step="1" min="0" value="{{ line.debit or '' }}"></td>
+                            <td><input type="number" name="lines[{{ loop.index0 }}][credit]" class="form-control amount" step="1" min="0" value="{{ line.credit or '' }}"></td>
+                            <td>
+                                <button type="button" class="btn btn-danger btn-sm remove-line">✖</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% else %}
                         <tr>
                             <td class="text-center">1</td>
                             <td>
@@ -87,6 +108,7 @@
                                 <button type="button" class="btn btn-danger btn-sm remove-line">✖</button>
                             </td>
                         </tr>
+                        {% endif %}
                     </tbody>
                     <tfoot>
                         <tr class="table-info">
@@ -128,7 +150,8 @@
 </form>
 
 <script>
-    let lineCounter = 1;
+    let lineCounter = document.querySelectorAll('#linesBody tr').length || 1;
+    const journalId = {{ journal.id if journal else 'null' }};
 
     // افزودن ردیف
     document.getElementById('addLineBtn').addEventListener('click', function() {
@@ -251,24 +274,65 @@
     // ثبت نهایی
     document.getElementById('postBtn').addEventListener('click', function(e) {
         e.preventDefault();
-        const form = document.getElementById('journalForm');
-        const statusInput = form.querySelector('input[name="status"]');
-        if (statusInput) {
-            statusInput.value = 'POSTED';
-        }
-        if (validateForm()) {
-            form.submit();
-        }
+        document.getElementById('journalStatus').value = 'POSTED';
+        submitJournal();
     });
 
     // ذخیره پیش‌نویس
     document.getElementById('saveBtn').addEventListener('click', function(e) {
-        const form = document.getElementById('journalForm');
-        const statusInput = form.querySelector('input[name="status"]');
-        if (statusInput) {
-            statusInput.value = 'DRAFT';
-        }
+        e.preventDefault();
+        document.getElementById('journalStatus').value = 'DRAFT';
+        submitJournal();
     });
+
+
+
+    document.getElementById('journalForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        submitJournal();
+    });
+
+    function buildPayload() {
+        const lines = [];
+        document.querySelectorAll('#linesBody tr').forEach(function(row) {
+            const accountId = row.querySelector('select[name$="[account_id]"]')?.value;
+            const debit = parseInt(row.querySelector('input[name$="[debit]"]')?.value || 0, 10);
+            const credit = parseInt(row.querySelector('input[name$="[credit]"]')?.value || 0, 10);
+            if (accountId) {
+                lines.push({
+                    account_id: parseInt(accountId, 10),
+                    description: row.querySelector('input[name$="[description]"]')?.value || null,
+                    debit: debit > 0 ? debit : null,
+                    credit: credit > 0 ? credit : null
+                });
+            }
+        });
+
+        return {
+            journal_date: document.querySelector('input[name="journal_date"]').value,
+            status: document.getElementById('journalStatus').value,
+            reference_type: document.querySelector('select[name="reference_type"]').value || null,
+            description: document.querySelector('input[name="description"]').value || null,
+            lines: lines
+        };
+    }
+
+    async function submitJournal() {
+        if (!validateForm()) return;
+        const endpoint = journalId ? `/api/v1/journal-entries/${journalId}` : '/api/v1/journal-entries/';
+        const method = journalId ? 'PUT' : 'POST';
+        const response = await fetch(endpoint, {
+            method: method,
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(buildPayload())
+        });
+        if (response.ok) {
+            window.location.href = '/api/v1/journal-entries/list';
+            return;
+        }
+        const error = await response.json().catch(() => ({}));
+        alert(error.detail || 'خطا در ثبت سند حسابداری');
+    }
 
     function validateForm() {
         const rows = document.querySelectorAll('#linesBody tr');
@@ -279,20 +343,27 @@
         
         let totalDebit = 0;
         let totalCredit = 0;
-        let hasAccount = false;
+        let validRows = 0;
+        let invalidMixedRows = false;
         
         rows.forEach(function(row) {
             const account = row.querySelector('select[name$="[account_id]"]')?.value;
             const debit = parseFloat(row.querySelector('input[name$="[debit]"]')?.value || 0);
             const credit = parseFloat(row.querySelector('input[name$="[credit]"]')?.value || 0);
             
-            if (account) hasAccount = true;
+            if (account && (debit > 0 || credit > 0)) validRows++;
+            if (debit > 0 && credit > 0) invalidMixedRows = true;
             totalDebit += debit;
             totalCredit += credit;
         });
         
-        if (!hasAccount) {
-            alert('حداقل یک ردیف باید حساب داشته باشد.');
+        if (validRows < 2) {
+            alert('حداقل دو ردیف معتبر برای سند حسابداری لازم است.');
+            return false;
+        }
+
+        if (invalidMixedRows) {
+            alert('هر ردیف فقط می‌تواند بدهکار یا بستانکار باشد.');
             return false;
         }
         

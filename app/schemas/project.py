@@ -1,11 +1,12 @@
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from datetime import date, datetime
+from app.schemas.jalali import JalaliDateInput, OptionalJalaliDateInput
 
 class ProjectBase(BaseModel):
     project_code: str = Field(..., min_length=2, max_length=2, description="کد پروژه ۲ رقمی")
     name: str = Field(..., max_length=200)
-    start_date: date
+    start_date: JalaliDateInput
     status: Optional[str] = "ACTIVE"
     total_units: Optional[int] = 0
     description: Optional[str] = None
@@ -22,7 +23,7 @@ class ProjectCreate(ProjectBase):
 
 class ProjectUpdate(BaseModel):
     name: Optional[str] = Field(None, max_length=200)
-    start_date: Optional[date] = None
+    start_date: OptionalJalaliDateInput = None
     status: Optional[str] = None
     total_units: Optional[int] = None
     description: Optional[str] = None

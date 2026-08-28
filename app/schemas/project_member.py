@@ -1,11 +1,12 @@
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import date, datetime
+from app.schemas.jalali import JalaliDateInput, OptionalJalaliDateInput
 
 class ProjectMemberBase(BaseModel):
     customer_id: int = Field(..., description="شناسه مشتری")
     project_id: int = Field(..., description="شناسه پروژه")
-    join_date: date = Field(..., description="تاریخ عضویت")
+    join_date: JalaliDateInput = Field(..., description="تاریخ عضویت")
     status: Optional[str] = "ACTIVE"
     notes: Optional[str] = Field(None, max_length=500)
 
@@ -13,7 +14,7 @@ class ProjectMemberCreate(ProjectMemberBase):
     pass
 
 class ProjectMemberUpdate(BaseModel):
-    join_date: Optional[date] = None
+    join_date: OptionalJalaliDateInput = None
     status: Optional[str] = None
     notes: Optional[str] = Field(None, max_length=500)
 

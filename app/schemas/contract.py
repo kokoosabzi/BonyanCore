@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import date, datetime
+from app.schemas.jalali import JalaliDateInput, OptionalJalaliDateInput
 from enum import Enum
 
 class ContractType(str, Enum):
@@ -17,25 +18,25 @@ class ContractBase(BaseModel):
     project_member_id: int
     contract_type: ContractType
     status: Optional[ContractStatus] = ContractStatus.DRAFT
-    start_date: date
-    end_date: Optional[date] = None
+    start_date: JalaliDateInput
+    end_date: OptionalJalaliDateInput = None
     unit_id: Optional[int] = None
     final_price: Optional[int] = None
     description: Optional[str] = None
     signed_by: Optional[str] = None
-    signed_date: Optional[date] = None
+    signed_date: OptionalJalaliDateInput = None
 
 class ContractCreate(ContractBase):
     pass
 
 class ContractUpdate(BaseModel):
     status: Optional[ContractStatus] = None
-    end_date: Optional[date] = None
+    end_date: OptionalJalaliDateInput = None
     unit_id: Optional[int] = None
     final_price: Optional[int] = None
     description: Optional[str] = None
     signed_by: Optional[str] = None
-    signed_date: Optional[date] = None
+    signed_date: OptionalJalaliDateInput = None
 
 class ContractResponse(ContractBase):
     id: int

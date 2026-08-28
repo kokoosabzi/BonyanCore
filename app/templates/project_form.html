@@ -22,8 +22,8 @@
     <div class="row">
         <div class="col-md-6 mb-3">
             <label class="form-label required">تاریخ شروع</label>
-            <input type="date" name="start_date" class="form-control" required
-                   value="{{ project.start_date if project else '' }}">
+            <input type="text" name="start_date" class="form-control jalali-date-picker" placeholder="1404/05/03" required
+                   value="{{ project.start_date|jalali if project else '' }}">
         </div>
         <div class="col-md-6 mb-3">
             <label class="form-label">تعداد واحد</label>

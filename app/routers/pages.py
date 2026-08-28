@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Form, status, Query
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from typing import Optional
 
@@ -10,37 +9,20 @@ from app.services.project_service import ProjectService
 from app.services.project_member_service import ProjectMemberService
 from app.services.contract_service import ContractService
 from app.services.financial_obligation_service import FinancialObligationService
-from app.services.financial_credit_service import FinancialCreditService
 from app.services.bank_service import BankService
 from app.services.bank_account_service import BankAccountService
 from app.services.unit_service import UnitService
 from app.services.receipt_service import ReceiptService
+from app.core.templates import create_templates
 from app.models.project_member import ProjectMember
 from app.models.receipt import Receipt
 
 router = APIRouter(prefix="/pages", tags=["Pages"])
-templates = Jinja2Templates(directory="app/templates")
+templates = create_templates()
 
 # ============================================================
 # صفحه اصلی (داشبورد)
 # ============================================================
-@router.get("/", response_class=HTMLResponse)
-async def dashboard(request: Request, db: Session = Depends(get_db)):
-    projects = ProjectService.get_all(db)
-    customers = CustomerService.get_all(db)
-    members = db.query(ProjectMember).filter(ProjectMember.is_deleted == False).all()
-    contracts = ContractService.get_all(db)
-    
-    return templates.TemplateResponse(
-        "dashboard.html",
-        {
-            "request": request,
-            "projects_count": len(projects),
-            "customers_count": len(customers),
-            "members_count": len(members),
-            "contracts_count": len(contracts)
-        }
-    )
 @router.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request, db: Session = Depends(get_db)):
     projects = ProjectService.get_all(db)
@@ -64,12 +46,6 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
 # ============================================================
 # پروژه‌ها
 # ============================================================
-@router.get("/projects", response_class=HTMLResponse)
-async def project_list(request: Request, db: Session = Depends(get_db)):
-    projects = ProjectService.get_all(db)
-    return templates.TemplateResponse("project_list.html", {"request": request, "projects": projects})
-# و برای سایر صفحات، active_page را اضافه کن:
-# مثلاً برای project_list:
 @router.get("/projects", response_class=HTMLResponse)
 async def project_list(request: Request, db: Session = Depends(get_db)):
     projects = ProjectService.get_all(db)
@@ -231,84 +207,6 @@ async def membership_delete(member_id: int, db: Session = Depends(get_db)):
     ProjectMemberService.delete(db, member_id)
     return RedirectResponse("/pages/memberships", status_code=303)
 
-# ============================================================
-# گزارشات
-# ============================================================
-@router.get("/reports/customer-statement", response_class=HTMLResponse)
-async def customer_statement_report(
-    request: Request,
-    customer_id: Optional[int] = Query(None),
-    from_date: Optional[str] = Query(None),
-    to_date: Optional[str] = Query(None),
-    db: Session = Depends(get_db)
-):
-    customers = CustomerService.get_all(db)
-    report_data = {}
-    if customer_id:
-        # دریافت اطلاعات مشتری و تراکنش‌ها
-        customer = CustomerService.get_by_id(db, customer_id)
-        report_data = {
-            "customer": customer,
-            "transactions": [],  # محاسبه بعدی
-            "total_obligations": 0,
-            "total_credits": 0,
-            "net_balance": 0
-        }
-    return templates.TemplateResponse(
-        "reports/customer_statement.html",
-        {
-            "request": request,
-            "active_page": "reports",
-            "customers": customers,
-            "customer_id": customer_id,
-            "from_date": from_date,
-            "to_date": to_date,
-            **report_data
-        }
-    )
-
-@router.get("/reports/project-summary", response_class=HTMLResponse)
-async def project_summary_report(
-    request: Request,
-    project_id: Optional[int] = Query(None),
-    from_date: Optional[str] = Query(None),
-    to_date: Optional[str] = Query(None),
-    db: Session = Depends(get_db)
-):
-    projects = ProjectService.get_all(db)
-    return templates.TemplateResponse(
-        "reports/project_summary.html",
-        {
-            "request": request,
-            "active_page": "reports",
-            "projects": projects,
-            "project_id": project_id,
-            "from_date": from_date,
-            "to_date": to_date
-        }
-    )
-
-@router.get("/reports/bank", response_class=HTMLResponse)
-async def bank_report(
-    request: Request,
-    account_id: Optional[int] = Query(None),
-    from_date: Optional[str] = Query(None),
-    to_date: Optional[str] = Query(None),
-    db: Session = Depends(get_db)
-):
-    from app.services.bank_account_service import BankAccountService
-    accounts = BankAccountService.get_all(db)
-    return templates.TemplateResponse(
-        "reports/bank_report.html",
-        {
-            "request": request,
-            "active_page": "reports",
-            "accounts": accounts,
-            "account_id": account_id,
-            "from_date": from_date,
-            "to_date": to_date
-        }
-    )
 # ============================================================
 # واحدها (Units)
 # ============================================================
@@ -568,89 +466,6 @@ async def bank_create(
     )
     BankService.create(db, data)
     return RedirectResponse("/pages/banks", status_code=303)
-# ============================================================
-# گزارشات (موقت - فقط نمایش فرم)
-# ============================================================
-@router.get("/reports/customer-statement", response_class=HTMLResponse)
-async def customer_statement_report(
-    request: Request,
-    customer_id: Optional[int] = Query(None),
-    from_date: Optional[str] = Query(None),
-    to_date: Optional[str] = Query(None),
-    db: Session = Depends(get_db)
-):
-    customers = CustomerService.get_all(db)
-    return templates.TemplateResponse(
-        "reports/customer_statement.html",
-        {
-            "request": request,
-            "active_page": "reports",
-            "customers": customers,
-            "customer_id": customer_id,
-            "from_date": from_date,
-            "to_date": to_date,
-            "customer": None,
-            "transactions": [],
-            "total_obligations": 0,
-            "total_credits": 0,
-            "net_balance": 0
-        }
-    )
-
-@router.get("/reports/project-summary", response_class=HTMLResponse)
-async def project_summary_report(
-    request: Request,
-    project_id: Optional[int] = Query(None),
-    from_date: Optional[str] = Query(None),
-    to_date: Optional[str] = Query(None),
-    db: Session = Depends(get_db)
-):
-    projects = ProjectService.get_all(db)
-    return templates.TemplateResponse(
-        "reports/project_summary.html",
-        {
-            "request": request,
-            "active_page": "reports",
-            "projects": projects,
-            "project_id": project_id,
-            "from_date": from_date,
-            "to_date": to_date,
-            "project": None,
-            "member_count": 0,
-            "member_summaries": [],
-            "total_obligations": 0,
-            "total_credits": 0,
-            "total_overdue": 0
-        }
-    )
-
-@router.get("/reports/bank", response_class=HTMLResponse)
-async def bank_report(
-    request: Request,
-    account_id: Optional[int] = Query(None),
-    from_date: Optional[str] = Query(None),
-    to_date: Optional[str] = Query(None),
-    db: Session = Depends(get_db)
-):
-    from app.services.bank_account_service import BankAccountService
-    accounts = BankAccountService.get_all(db)
-    return templates.TemplateResponse(
-        "reports/bank_report.html",
-        {
-            "request": request,
-            "active_page": "reports",
-            "accounts": accounts,
-            "account_id": account_id,
-            "from_date": from_date,
-            "to_date": to_date,
-            "account": None,
-            "transactions": [],
-            "balance": 0,
-            "total_deposits": 0,
-            "total_withdrawals": 0,
-            "transaction_count": 0
-        }
-    )
 # ============================================================
 # حساب‌های بانکی
 # ============================================================

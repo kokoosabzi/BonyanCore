@@ -1,9 +1,12 @@
+import pytest
+
+sqlalchemy = pytest.importorskip("sqlalchemy", reason="SQLAlchemy is required for database smoke tests")
+
 from app.core.database import engine
 from sqlalchemy import text
 
-try:
+
+def test_database_connection():
     with engine.connect() as conn:
         result = conn.execute(text("SELECT 1"))
-        print("✅ Database connection successful!")
-except Exception as e:
-    print(f"❌ Database connection failed: {e}")
+        assert result.scalar() == 1

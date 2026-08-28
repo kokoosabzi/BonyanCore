@@ -1,62 +1,67 @@
-from sqlalchemy.orm import Session
-from typing import List
 from datetime import datetime
+from typing import Iterable
+
+from sqlalchemy.orm import Session
+
 from app.models.journal_entry import JournalEntry, JournalStatus
-from app.models.journal_line import JournalLine, DebitCredit
+from app.models.journal_line import DebitCredit, JournalLine
 from app.schemas.journal_entry import JournalEntryCreate, JournalEntryUpdate, JournalLineCreate
 from app.services.document_sequence_service import DocumentSequenceService
+from app.utils.jalali import to_gregorian
+
 
 class JournalEntryService:
     @staticmethod
+    def _build_line(journal_id: int, line_data: JournalLineCreate) -> JournalLine:
+        debit = line_data.debit or 0
+        credit = line_data.credit or 0
+        if debit > 0 and credit > 0:
+            raise ValueError("هر ردیف فقط می‌تواند بدهکار یا بستانکار باشد")
+        if debit <= 0 and credit <= 0:
+            raise ValueError("هر ردیف سند باید مبلغ بدهکار یا بستانکار داشته باشد")
+
+        return JournalLine(
+            journal_id=journal_id,
+            account_id=line_data.account_id,
+            debit_credit=DebitCredit.DEBIT if debit > 0 else DebitCredit.CREDIT,
+            amount=debit if debit > 0 else credit,
+            description=line_data.description,
+            analytic_account_id=line_data.analytic_account_id,
+        )
+
+    @staticmethod
+    def _validate_balanced_lines(lines: Iterable[JournalLine]) -> None:
+        lines = list(lines)
+        if len(lines) < 2:
+            raise ValueError("حداقل دو ردیف معتبر برای سند حسابداری لازم است")
+
+        total_debit = sum(line.amount for line in lines if line.debit_credit == DebitCredit.DEBIT)
+        total_credit = sum(line.amount for line in lines if line.debit_credit == DebitCredit.CREDIT)
+        if total_debit != total_credit:
+            raise ValueError("جمع بدهکار و بستانکار باید برابر باشد")
+
+    @staticmethod
     def create(db: Session, data: JournalEntryCreate) -> JournalEntry:
         journal_no = DocumentSequenceService.get_next_journal_number(db)
-        
-        # تبدیل تاریخ شمسی به میلادی (ساده)
-        from app.utils.jalali import to_gregorian
         journal_date = to_gregorian(data.journal_date)
-        
+
+        status = data.status or JournalStatus.DRAFT
         journal = JournalEntry(
             journal_no=journal_no,
             journal_date=journal_date,
-            status=data.status or JournalStatus.DRAFT,
+            status=status,
             description=data.description,
             reference_type=data.reference_type,
-            reference_id=data.reference_id
+            reference_id=data.reference_id,
+            posted_at=datetime.utcnow() if status == JournalStatus.POSTED else None,
         )
         db.add(journal)
         db.flush()
-        
-        total_debit = 0
-        total_credit = 0
-        
-        for line_data in data.lines:
-            if line_data.debit:
-                line = JournalLine(
-                    journal_id=journal.id,
-                    account_id=line_data.account_id,
-                    debit_credit=DebitCredit.DEBIT,
-                    amount=line_data.debit,
-                    description=line_data.description,
-                    analytic_account_id=line_data.analytic_account_id
-                )
-                db.add(line)
-                total_debit += line_data.debit
-            elif line_data.credit:
-                line = JournalLine(
-                    journal_id=journal.id,
-                    account_id=line_data.account_id,
-                    debit_credit=DebitCredit.CREDIT,
-                    amount=line_data.credit,
-                    description=line_data.description,
-                    analytic_account_id=line_data.analytic_account_id
-                )
-                db.add(line)
-                total_credit += line_data.credit
-        
-        if total_debit != total_credit:
-            db.rollback()
-            raise ValueError("جمع بدهکار و بستانکار باید برابر باشد")
-        
+
+        lines = [JournalEntryService._build_line(journal.id, line_data) for line_data in data.lines]
+        JournalEntryService._validate_balanced_lines(lines)
+        db.add_all(lines)
+
         db.commit()
         db.refresh(journal)
         return journal
@@ -82,8 +87,22 @@ class JournalEntryService:
             return None
         if journal.status == JournalStatus.POSTED:
             raise ValueError("سند ثبت شده قابل ویرایش نیست")
-        for key, value in data.model_dump(exclude_unset=True).items():
+
+        update_data = data.model_dump(exclude_unset=True)
+        line_items = update_data.pop("lines", None)
+        if "journal_date" in update_data and update_data["journal_date"]:
+            update_data["journal_date"] = to_gregorian(update_data["journal_date"])
+
+        for key, value in update_data.items():
             setattr(journal, key, value)
+
+        if line_items is not None:
+            db.query(JournalLine).filter(JournalLine.journal_id == journal.id).delete(synchronize_session=False)
+            db.flush()
+            lines = [JournalEntryService._build_line(journal.id, JournalLineCreate(**line_data)) for line_data in line_items]
+            JournalEntryService._validate_balanced_lines(lines)
+            db.add_all(lines)
+
         db.commit()
         db.refresh(journal)
         return journal
@@ -95,7 +114,11 @@ class JournalEntryService:
             return None
         if journal.status == JournalStatus.POSTED:
             raise ValueError("سند قبلاً ثبت شده است")
+
+        active_lines = [line for line in journal.lines if not line.is_deleted]
+        JournalEntryService._validate_balanced_lines(active_lines)
         journal.status = JournalStatus.POSTED
+        journal.posted_at = datetime.utcnow()
         db.commit()
         db.refresh(journal)
         return journal

@@ -1,4 +1,5 @@
 from sqlalchemy import Column, String, Boolean, BigInteger, ForeignKey, Text
+from sqlalchemy.orm import relationship
 from app.models.base import BaseModel
 
 class BankAccount(BaseModel):
@@ -13,3 +14,4 @@ class BankAccount(BaseModel):
     currency = Column(String(3), default="IRR")
     is_active = Column(Boolean, default=True)
     description = Column(Text, nullable=True)
+    bank = relationship("Bank", back_populates="accounts")

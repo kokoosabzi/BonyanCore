@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status, Request
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from typing import Optional, List
 
@@ -8,9 +7,10 @@ from app.core.database import get_db
 from app.schemas.cheque_book import ChequeBookCreate, ChequeBookUpdate, ChequeBookResponse
 from app.services.cheque_book_service import ChequeBookService
 from app.services.bank_account_service import BankAccountService
+from app.core.templates import create_templates
 
 router = APIRouter(prefix="/api/v1/cheque-books", tags=["Cheque Books"])
-templates = Jinja2Templates(directory="app/templates")
+templates = create_templates()
 
 # ============================================================
 # API Routes

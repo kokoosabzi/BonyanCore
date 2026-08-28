@@ -1,5 +1,4 @@
-﻿from fastapi import FastAPI, Request
-from fastapi.templating import Jinja2Templates
+from fastapi import FastAPI, Request
 from app.routers.reports import router as reports_router
 from app.routers.auth import router as auth_router
 from app.core.config import settings
@@ -16,10 +15,15 @@ from app.routers import (
     cheque_book_router,
 )
 from app.core.database import Base, engine
+from app.core.templates import create_templates
+
+# Import all model modules before creating tables so SQLAlchemy metadata
+# contains every mapped table, not just models imported indirectly by routers.
+import app.models  # noqa: F401
 
 Base.metadata.create_all(bind=engine)
 
-templates = Jinja2Templates(directory="app/templates")
+templates = create_templates()
 
 app = FastAPI(
     title=settings.APP_NAME,

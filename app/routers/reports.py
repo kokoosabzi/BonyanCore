@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from fastapi.responses import HTMLResponse, StreamingResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from typing import Optional
 import io
@@ -12,10 +11,11 @@ from app.services.report_service import ReportService
 from app.services.customer_service import CustomerService
 from app.services.project_service import ProjectService
 from app.services.bank_account_service import BankAccountService
-from app.utils.jalali import to_jalali, get_today_jalali
+from app.core.templates import create_templates
+from app.utils.jalali import to_jalali, get_today_jalali, parse_jalali_date
 
 router = APIRouter(prefix="/reports", tags=["Reports"])
-templates = Jinja2Templates(directory="app/templates")
+templates = create_templates()
 
 # ============================================================
 # داشبورد مالی
@@ -47,7 +47,7 @@ async def customer_statement_page(
     report_data = {}
 
     if customer_id:
-        report = ReportService.get_customer_statement(db, customer_id)
+        report = ReportService.get_customer_statement(db, customer_id, parse_jalali_date(from_date), parse_jalali_date(to_date))
         if "error" not in report:
             report_data = report
 
@@ -69,7 +69,7 @@ async def customer_statement_excel(
     customer_id: int = Query(...),
     db: Session = Depends(get_db)
 ):
-    report = ReportService.get_customer_statement(db, customer_id)
+    report = ReportService.get_customer_statement(db, customer_id, parse_jalali_date(from_date), parse_jalali_date(to_date))
     if "error" in report:
         raise HTTPException(status_code=404, detail=report["error"])
 
@@ -171,7 +171,7 @@ async def bank_report_page(
     report_data = {}
 
     if account_id:
-        report = ReportService.get_bank_report(db, account_id)
+        report = ReportService.get_bank_report(db, account_id, parse_jalali_date(from_date), parse_jalali_date(to_date))
         if "error" not in report:
             report_data = report
 

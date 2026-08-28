@@ -29,8 +29,8 @@
         <div class="row">
             <div class="col-md-6 mb-3">
                 <label class="form-label required">تاریخ عضویت</label>
-                <input type="date" name="join_date" class="form-control" required
-                       value="{{ membership.join_date }}">
+                <input type="text" name="join_date" class="form-control jalali-date-picker" placeholder="1404/05/03" required
+                       value="{{ membership.join_date|jalali }}">
             </div>
             <div class="col-md-6 mb-3">
                 <label class="form-label">وضعیت</label>
