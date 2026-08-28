@@ -13,13 +13,29 @@ from app.services.financial_credit_service import FinancialCreditService
 
 class ReportService:
     @staticmethod
+    def _validate_date_range(
+        from_date: Optional[date], to_date: Optional[date]
+    ) -> None:
+        """Validate report boundaries before they are used in a financial query."""
+        for value in (from_date, to_date):
+            if value is not None and not isinstance(value, date):
+                raise ValueError("تاریخ فیلتر گزارش معتبر نیست")
+        if from_date and to_date and from_date > to_date:
+            raise ValueError("تاریخ شروع نمی‌تواند بعد از تاریخ پایان باشد")
+
+    @staticmethod
     def get_customer_statement(
         db: Session,
         customer_id: int,
         from_date: Optional[date] = None,
         to_date: Optional[date] = None
     ) -> Dict[str, Any]:
-        """صورت حساب مشتری"""
+        """Return a customer statement filtered by effective financial dates.
+
+        Obligations are effective on their due date (or their creation date when
+        a due date was not supplied); credits are effective on ``credit_date``.
+        """
+        ReportService._validate_date_range(from_date, to_date)
         customer = db.query(Customer).filter(Customer.id == customer_id).first()
         if not customer:
             return {"error": "مشتری پیدا نشد"}
@@ -29,10 +45,13 @@ class ReportService:
             FinancialObligation.customer_id == customer_id,
             FinancialObligation.is_deleted == False
         )
+        obligation_effective_date = func.coalesce(
+            FinancialObligation.due_date, func.date(FinancialObligation.created_at)
+        )
         if from_date:
-            obligations = obligations.filter(FinancialObligation.created_at >= from_date)
+            obligations = obligations.filter(obligation_effective_date >= from_date)
         if to_date:
-            obligations = obligations.filter(FinancialObligation.created_at <= to_date)
+            obligations = obligations.filter(obligation_effective_date <= to_date)
         obligations = obligations.all()
 
         # اعتبارات
@@ -41,9 +60,9 @@ class ReportService:
             FinancialCredit.is_deleted == False
         )
         if from_date:
-            credits = credits.filter(FinancialCredit.created_at >= from_date)
+            credits = credits.filter(FinancialCredit.credit_date >= from_date)
         if to_date:
-            credits = credits.filter(FinancialCredit.created_at <= to_date)
+            credits = credits.filter(FinancialCredit.credit_date <= to_date)
         credits = credits.all()
 
         # محاسبه مجموع
@@ -54,7 +73,7 @@ class ReportService:
         transactions = []
         for o in obligations:
             transactions.append({
-                "date": o.created_at,
+                "date": o.due_date or o.created_at.date(),
                 "type": "OBLIGATION",
                 "description": o.description or "بدهی",
                 "debit": o.amount - o.paid_amount,
@@ -63,7 +82,7 @@ class ReportService:
             })
         for c in credits:
             transactions.append({
-                "date": c.created_at,
+                "date": c.credit_date,
                 "type": "CREDIT",
                 "description": c.description or "اعتبار",
                 "debit": 0,
@@ -162,6 +181,7 @@ class ReportService:
         to_date: Optional[date] = None
     ) -> Dict[str, Any]:
         """گزارش حساب بانکی"""
+        ReportService._validate_date_range(from_date, to_date)
         account = db.query(BankAccount).filter(BankAccount.id == account_id).first()
         if not account:
             return {"error": "حساب بانکی پیدا نشد"}
@@ -231,6 +251,8 @@ class ReportService:
         statement_date: Optional[date] = None
     ) -> Dict[str, Any]:
         """گزارش مغایرت بانکی"""
+        if statement_date is not None and not isinstance(statement_date, date):
+            raise ValueError("تاریخ صورتحساب معتبر نیست")
         account = db.query(BankAccount).filter(BankAccount.id == account_id).first()
         if not account:
             return {"error": "حساب بانکی پیدا نشد"}

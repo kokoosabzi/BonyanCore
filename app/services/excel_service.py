@@ -5,6 +5,8 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill
 from fastapi.responses import StreamingResponse
 
+from app.utils.jalali import parse_jalali_date
+
 class ExcelService:
     @staticmethod
     def generate_template(import_type: str) -> bytes:
@@ -115,8 +117,11 @@ class ExcelService:
                                 value = value.date()
                             elif isinstance(value, str):
                                 try:
-                                    value = pd.to_datetime(value).date()
-                                except:
+                                    # Dates entered in the supplied Persian template are
+                                    # Jalali.  Do not let pandas reinterpret e.g. 1404 as
+                                    # a Gregorian year.
+                                    value = parse_jalali_date(value)
+                                except ValueError:
                                     value = None
                         elif english_col == "member_no":
                             value = str(value).strip()

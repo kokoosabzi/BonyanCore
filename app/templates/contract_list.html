@@ -32,7 +32,7 @@
                 <span class="badge bg-primary">نهایی واحد</span>
                 {% endif %}
             </td>
-            <td>{{ contract.start_date }}</td>
+            <td>{{ contract.start_date|jalali }}</td>
             <td>
                 {% if contract.status == 'ACTIVE' %}
                 <span class="badge bg-success">فعال</span>

@@ -11,7 +11,7 @@
             <button onclick="window.print()" class="btn btn-light btn-sm">
                 <i class="bi bi-printer"></i> چاپ
             </button>
-            <a href="/reports/customer-statement/excel?customer_id={{ customer_id }}" class="btn btn-light btn-sm">
+            <a href="/reports/customer-statement/excel?customer_id={{ customer_id }}&from_date={{ from_date or '' }}&to_date={{ to_date or '' }}" class="btn btn-light btn-sm">
                 <i class="bi bi-file-excel"></i> Excel
             </a>
         </div>
@@ -45,6 +45,10 @@
                 <button type="submit" class="btn btn-primary w-100">فیلتر</button>
             </div>
         </form>
+
+        {% if date_error %}
+        <div class="alert alert-danger" role="alert">{{ date_error }}</div>
+        {% endif %}
 
         {% if customer %}
         <!-- اطلاعات مشتری -->
@@ -100,7 +104,7 @@
                     {% set running_balance = 0 %}
                     {% for item in transactions %}
                     <tr>
-                        <td>{{ item.date }}</td>
+                        <td>{{ item.date|jalali }}</td>
                         <td>
                             {% if item.type == 'OBLIGATION' %}
                             <span class="badge bg-danger">بدهی</span>

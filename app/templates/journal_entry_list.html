@@ -26,7 +26,7 @@
             {% for journal in journals %}
             <tr>
                 <td><code>{{ journal.journal_no }}</code></td>
-                <td>{{ journal.journal_date }}</td>
+                <td>{{ journal.journal_date|jalali }}</td>
                 <td>{{ journal.description or '-' }}</td>
                 <td>{{ journal.reference_type or 'عمومی' }}</td>
                 <td>

@@ -36,6 +36,10 @@
             </div>
         </form>
 
+        {% if date_error %}
+        <div class="alert alert-danger" role="alert">{{ date_error }}</div>
+        {% endif %}
+
         {% if account %}
         <!-- اطلاعات حساب -->
         <div class="row mb-4">
@@ -89,7 +93,7 @@
                     <tbody>
                         {% for item in unrecorded %}
                         <tr>
-                            <td>{{ item.date }}</td>
+                            <td>{{ item.date|jalali }}</td>
                             <td>{{ item.description }}</td>
                             <td>{{ "{:,.0f}".format(item.amount) }}</td>
                             <td>

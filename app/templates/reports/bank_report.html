@@ -46,6 +46,10 @@
             </div>
         </form>
 
+        {% if date_error %}
+        <div class="alert alert-danger" role="alert">{{ date_error }}</div>
+        {% endif %}
+
         {% if account %}
         <div class="row mb-4">
             <div class="col-md-3"><strong>شماره حساب:</strong> {{ account.account_no }}</div>
@@ -102,7 +106,7 @@
                 <tbody>
                     {% for txn in transactions %}
                     <tr>
-                        <td>{{ txn.date }}</td>
+                        <td>{{ txn.date|jalali }}</td>
                         <td>{{ txn.description }}</td>
                         <td>
                             {% if txn.type == 'DEPOSIT' %}

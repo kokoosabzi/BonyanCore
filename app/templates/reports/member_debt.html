@@ -60,7 +60,7 @@
                         <td>{{ "{:,.0f}".format(debt.amount) }}</td>
                         <td>{{ "{:,.0f}".format(debt.paid_amount) }}</td>
                         <td class="text-danger">{{ "{:,.0f}".format(debt.amount - debt.paid_amount) }}</td>
-                        <td>{{ debt.due_date or '-' }}</td>
+                        <td>{{ debt.due_date|jalali if debt.due_date else '-' }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
