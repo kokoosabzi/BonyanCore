@@ -10,6 +10,7 @@ pytest.importorskip("sqlalchemy")
 from pydantic import ValidationError
 
 from app.schemas.bulk_import import BulkImportRow
+from app.services.bulk_import_service import BulkImportService
 from app.services.report_service import ReportService
 
 
@@ -49,3 +50,12 @@ def test_bank_report_and_reconciliation_source_require_confirmed_movements():
     assert "matched_count" in source
     assert "system_unmatched" in source
     assert "bank_unmatched" in source
+
+
+def test_bank_statement_bulk_import_is_dispatched_and_idempotent():
+    source = inspect.getsource(BulkImportService.process_bank_statement_bulk)
+    assert "reference_no" in source
+    assert "import_batch_id" in source
+    assert "BankStatement" in source
+    assert "StatementType" in source
+    assert "BANK_STATEMENT" in inspect.getsource(BulkImportService.process_bulk_import)

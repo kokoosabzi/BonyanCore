@@ -82,13 +82,16 @@ async def save_bulk_import(request: Request, db: Session = Depends(get_db)):
         form = await request.form()
         rows_data = []
         for i in range(int(form.get("row_count", 0))):
-            if form.get(f"rows[{i}][member_no]"):
-                rows_data.append({
-                    "member_no": form.get(f"rows[{i}][member_no]"),
-                    "full_name": form.get(f"rows[{i}][full_name]"),
-                    "amount": int(form.get(f"rows[{i}][amount]", 0)) if form.get(f"rows[{i}][amount]") else None,
-                    "description": form.get(f"rows[{i}][description]")
-                })
+            rows_data.append({
+                "member_no": form.get(f"rows[{i}][member_no]"),
+                "full_name": form.get(f"rows[{i}][full_name]"),
+                "amount": int(form.get(f"rows[{i}][amount]", 0)) if form.get(f"rows[{i}][amount]") else None,
+                "description": form.get(f"rows[{i}][description]"),
+                "date": form.get(f"rows[{i}][date]"),
+                "account_no": form.get(f"rows[{i}][account_no]"),
+                "transaction_type": form.get(f"rows[{i}][transaction_type]"),
+                "reference_no": form.get(f"rows[{i}][reference_no]"),
+            })
         
         data = BulkImportCreate(
             import_type=form.get("import_type"),

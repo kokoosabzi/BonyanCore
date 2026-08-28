@@ -37,6 +37,55 @@
 
     <div class="table-responsive">
         <table class="table table-striped table-hover">
+            {% if import_type == 'BANK_STATEMENT' %}
+            <thead>
+                <tr>
+                    <th>تاریخ</th>
+                    <th>شماره حساب</th>
+                    <th>مبلغ (ریال)</th>
+                    <th>نوع</th>
+                    <th>شماره مرجع</th>
+                    <th>شرح</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td>
+                        <input type="hidden" name="rows[{{ loop.index0 }}][date]" value="{{ row.date|jalali if row.date else '' }}">
+                        {{ row.date|jalali if row.date else '-' }}
+                    </td>
+                    <td>
+                        <input type="hidden" name="rows[{{ loop.index0 }}][account_no]" value="{{ row.account_no or '' }}">
+                        {{ row.account_no or '-' }}
+                    </td>
+                    <td>
+                        <input type="hidden" name="rows[{{ loop.index0 }}][amount]" value="{{ row.amount or 0 }}">
+                        {{ "{:,.0f}".format(row.amount) if row.amount else '۰' }}
+                    </td>
+                    <td>
+                        <input type="hidden" name="rows[{{ loop.index0 }}][transaction_type]" value="{{ row.transaction_type or '' }}">
+                        {{ row.transaction_type or '-' }}
+                    </td>
+                    <td>
+                        <input type="hidden" name="rows[{{ loop.index0 }}][reference_no]" value="{{ row.reference_no or '' }}">
+                        {{ row.reference_no or '-' }}
+                    </td>
+                    <td>
+                        <input type="hidden" name="rows[{{ loop.index0 }}][description]" value="{{ row.description or '' }}">
+                        {{ row.description or '-' }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="table-info">
+                    <th colspan="2">جمع کل</th>
+                    <th>{{ "{:,.0f}".format(total_amount) }}</th>
+                    <th colspan="3"></th>
+                </tr>
+            </tfoot>
+            {% else %}
             <thead>
                 <tr>
                     <th>شماره عضو</th>
@@ -49,8 +98,8 @@
                 {% for row in rows %}
                 <tr>
                     <td>
-                        <input type="hidden" name="rows[{{ loop.index0 }}][member_no]" value="{{ row.member_no }}">
-                        <strong>{{ row.member_no }}</strong>
+                        <input type="hidden" name="rows[{{ loop.index0 }}][member_no]" value="{{ row.member_no or '' }}">
+                        <strong>{{ row.member_no or '-' }}</strong>
                     </td>
                     <td>
                         <input type="hidden" name="rows[{{ loop.index0 }}][full_name]" value="{{ row.full_name or '' }}">
@@ -74,6 +123,7 @@
                     <th></th>
                 </tr>
             </tfoot>
+            {% endif %}
         </table>
     </div>
 
