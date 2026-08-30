@@ -16,6 +16,8 @@ from app.services.receipt_service import ReceiptService
 from app.core.templates import create_templates
 from app.models.project_member import ProjectMember
 from app.models.receipt import Receipt
+from app.services.ledger_service import LedgerService
+from app.services.report_service import ReportService
 
 router = APIRouter(prefix="/pages", tags=["Pages"])
 templates = create_templates()
@@ -30,18 +32,34 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
     members = db.query(ProjectMember).filter(ProjectMember.is_deleted == False).all()
     contracts = ContractService.get_all(db)
     
+    financial_summary = ReportService.get_management_dashboard(db)
     return templates.TemplateResponse(
         "dashboard.html",
         {
-            "request": request,
-            "active_page": "dashboard",
-            "projects_count": len(projects),
-            "customers_count": len(customers),
-            "members_count": len(members),
-            "contracts_count": len(contracts)
+            "request": request, "active_page": "dashboard", "projects_count": len(projects),
+            "customers_count": len(customers), "members_count": len(members), "contracts_count": len(contracts),
+            **financial_summary,
         }
     )
 
+
+# ============================================================
+# پروفایل عضو و شناسنامه پروژه
+# ============================================================
+@router.get("/customers/{customer_id}/profile", response_class=HTMLResponse)
+async def customer_profile(request: Request, customer_id: int, db: Session = Depends(get_db)):
+    report = ReportService.get_customer_statement(db, customer_id)
+    if "error" in report:
+        raise HTTPException(status_code=404, detail=report["error"])
+    memberships = db.query(ProjectMember).filter(ProjectMember.customer_id == customer_id, ProjectMember.is_deleted == False).all()
+    return templates.TemplateResponse("customer_profile.html", {"request": request, "memberships": memberships, **report})
+
+@router.get("/projects/{project_id}/profile", response_class=HTMLResponse)
+async def project_profile(request: Request, project_id: int, db: Session = Depends(get_db)):
+    report = ReportService.get_project_financial_summary(db, project_id)
+    if "error" in report:
+        raise HTTPException(status_code=404, detail=report["error"])
+    return templates.TemplateResponse("project_profile.html", {"request": request, **report})
 
 # ============================================================
 # پروژه‌ها
@@ -364,7 +382,7 @@ async def receipt_create_form(request: Request, db: Session = Depends(get_db)):
     bank_accounts = BankAccountService.get_all(db)
     return templates.TemplateResponse(
         "receipt_form.html",
-        {"request": request, "receipt": None, "customers": customers, "projects": projects, "bank_accounts": bank_accounts}
+        {"request": request, "receipt": None, "customers": customers, "projects": projects, "contracts": ContractService.get_all(db), "bank_accounts": bank_accounts}
     )
 
 @router.post("/receipts/create")
@@ -372,6 +390,7 @@ async def receipt_create(
     request: Request,
     customer_id: int = Form(...),
     project_id: int = Form(...),
+    contract_id: Optional[int] = Form(None),
     amount: int = Form(...),
     receipt_date: str = Form(...),
     payment_method: str = Form(...),
@@ -385,6 +404,7 @@ async def receipt_create(
     data = ReceiptCreate(
         customer_id=customer_id,
         project_id=project_id,
+        contract_id=contract_id,
         amount=amount,
         receipt_date=receipt_date,
         payment_method=payment_method,
@@ -394,6 +414,16 @@ async def receipt_create(
         description=description if description else None
     )
     ReceiptService.create(db, data)
+    return RedirectResponse("/pages/receipts", status_code=303)
+
+@router.post("/receipts/{receipt_id}/confirm")
+async def receipt_confirm(receipt_id: int, db: Session = Depends(get_db)):
+    try:
+        receipt = ReceiptService.confirm(db, receipt_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    if not receipt:
+        raise HTTPException(status_code=404, detail="دریافت پیدا نشد")
     return RedirectResponse("/pages/receipts", status_code=303)
 
 # ============================================================

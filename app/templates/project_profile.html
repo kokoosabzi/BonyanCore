@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block page_title %}شناسنامه پروژه: {{ project.name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between mb-3"><h4>{{ project.project_code }} — {{ project.name }}</h4><a class="btn btn-outline-success" href="/reports/project-summary?project_id={{ project.id }}">گزارش کامل</a></div>
+<div class="row g-3 mb-4"><div class="col-md-3"><div class="card"><div class="card-body">اعضا: <strong>{{ member_count }}</strong></div></div></div><div class="col-md-3"><div class="card"><div class="card-body">بدهی: <strong>{{ "{:,.0f}".format(total_obligations) }}</strong></div></div></div><div class="col-md-3"><div class="card"><div class="card-body">دریافت: <strong>{{ "{:,.0f}".format(total_receipts) }}</strong></div></div></div><div class="col-md-3"><div class="card"><div class="card-body">معوق: <strong>{{ "{:,.0f}".format(total_overdue) }}</strong></div></div></div></div>
+<div class="card"><div class="card-header">اعضای بدهکار</div><div class="list-group list-group-flush">{% for member in member_summaries if member.net_balance > 0 %}<div class="list-group-item">{{ member.full_name }} <span class="float-start text-danger">{{ "{:,.0f}".format(member.net_balance) }}</span></div>{% else %}<div class="list-group-item">عضو بدهکار وجود ندارد.</div>{% endfor %}</div></div>
+{% endblock %}

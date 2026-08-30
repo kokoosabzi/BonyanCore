@@ -26,3 +26,5 @@ from app.models.role import Role
 from app.models.permission import Permission
 from app.models.bulk_import import BulkImportLog
 from app.models.cheque_book import ChequeBook, Cheque, ChequeStatus
+from app.models.receipt_allocation import ReceiptAllocation
+from app.models.bank_reconciliation_match import BankReconciliationMatch

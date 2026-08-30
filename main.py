@@ -14,6 +14,9 @@ from app.routers import (
     journal_entry_router,
     cheque_book_router,
 )
+from app.routers.receipt import router as receipt_router
+from app.routers.payment import router as payment_router
+from app.routers.bank_reconciliation import router as bank_reconciliation_router
 from app.core.database import Base, engine
 from app.core.templates import create_templates
 
@@ -39,6 +42,9 @@ app.include_router(financial_obligation_router)
 app.include_router(financial_credit_router)
 app.include_router(journal_entry_router)
 app.include_router(cheque_book_router)
+app.include_router(receipt_router)
+app.include_router(payment_router)
+app.include_router(bank_reconciliation_router)
 app.include_router(auth_router)
 app.include_router(reports_router)
 # Page Routes
