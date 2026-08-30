@@ -21,7 +21,8 @@ from app.core.templates import create_templates
 # contains every mapped table, not just models imported indirectly by routers.
 import app.models  # noqa: F401
 
-Base.metadata.create_all(bind=engine)
+if settings.AUTO_CREATE_TABLES:
+    Base.metadata.create_all(bind=engine)
 
 templates = create_templates()
 
@@ -63,3 +64,11 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+@app.get("/health/db")
+async def database_health_check():
+    from sqlalchemy import text
+
+    with engine.connect() as connection:
+        connection.execute(text("SELECT 1"))
+    return {"status": "healthy", "database": "reachable"}

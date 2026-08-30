@@ -9,7 +9,7 @@ from app.services.bulk_import_service import BulkImportService
 from app.services.excel_service import ExcelService
 from app.services.project_service import ProjectService
 from app.core.templates import create_templates
-from app.schemas.bulk_import import BulkImportCreate, BulkImportRow
+from app.schemas.bulk_import import BulkImportCreate, BulkImportRow, BulkImportType, DateCalendar
 from app.models.bulk_import import BulkImportLog
 
 router = APIRouter(prefix="/bulk-import", tags=["Bulk Import"])
@@ -42,11 +42,12 @@ async def upload_excel(
     document_description: str = Form(...),
     debit_type: Optional[str] = Form(None),
     credit_type: Optional[str] = Form(None),
+    date_calendar: str = Form("jalali"),
     db: Session = Depends(get_db)
 ):
     try:
         content = await file.read()
-        rows, errors = ExcelService.parse_excel(content)
+        rows, errors = ExcelService.parse_excel(content, date_calendar=date_calendar)
         total_amount = sum([r.get("amount", 0) or 0 for r in rows])
         return templates.TemplateResponse("bulk_import_preview.html", {
             "request": request,
@@ -58,6 +59,7 @@ async def upload_excel(
             "document_description": document_description,
             "debit_type": debit_type,
             "credit_type": credit_type,
+            "date_calendar": date_calendar,
             "total_rows": len(rows),
             "total_amount": total_amount
         })
@@ -72,6 +74,7 @@ async def upload_excel(
             "document_description": document_description,
             "debit_type": debit_type,
             "credit_type": credit_type,
+            "date_calendar": date_calendar,
             "total_rows": 0,
             "total_amount": 0
         })
@@ -81,14 +84,20 @@ async def save_bulk_import(request: Request, db: Session = Depends(get_db)):
     try:
         form = await request.form()
         rows_data = []
+        import_type = form.get("import_type")
         for i in range(int(form.get("row_count", 0))):
-            if form.get(f"rows[{i}][member_no]"):
-                rows_data.append({
-                    "member_no": form.get(f"rows[{i}][member_no]"),
+            if import_type == BulkImportType.BANK_STATEMENT or form.get(f"rows[{i}][member_no]"):
+                row = {
+                    "member_no": form.get(f"rows[{i}][member_no]") or None,
                     "full_name": form.get(f"rows[{i}][full_name]"),
                     "amount": int(form.get(f"rows[{i}][amount]", 0)) if form.get(f"rows[{i}][amount]") else None,
-                    "description": form.get(f"rows[{i}][description]")
-                })
+                    "description": form.get(f"rows[{i}][description]"),
+                    "date": form.get(f"rows[{i}][date]") or None,
+                    "account_no": form.get(f"rows[{i}][account_no]") or None,
+                    "transaction_type": form.get(f"rows[{i}][transaction_type]") or None,
+                    "reference_no": form.get(f"rows[{i}][reference_no]") or None,
+                }
+                rows_data.append(row)
         
         data = BulkImportCreate(
             import_type=form.get("import_type"),
@@ -97,6 +106,7 @@ async def save_bulk_import(request: Request, db: Session = Depends(get_db)):
             document_description=form.get("document_description"),
             debit_type=form.get("debit_type"),
             credit_type=form.get("credit_type"),
+            date_calendar=form.get("date_calendar") or DateCalendar.JALALI,
             rows=[BulkImportRow(**r) for r in rows_data]
         )
         

@@ -4,6 +4,7 @@ from typing import List, Dict, Any, Tuple
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill
 from fastapi.responses import StreamingResponse
+from app.utils.jalali import parse_jalali_date
 
 class ExcelService:
     @staticmethod
@@ -32,10 +33,10 @@ class ExcelService:
                 ["010002", "رضا احمدی", "9876543210", "09127654321", "", ""],
             ]
         elif import_type == "BANK_STATEMENT":
-            columns = ["تاریخ", "شماره حساب", "مبلغ (ریال)", "نوع", "شرح"]
+            columns = ["تاریخ", "شماره حساب", "مبلغ (ریال)", "نوع", "شماره مرجع", "شرح"]
             sample_data = [
-                ["1404-05-03", "1234567890", "50000000", "DEPOSIT", "واریز نقدی"],
-                ["1404-05-03", "1234567890", "30000000", "WITHDRAWAL", "برداشت"],
+                ["1404-05-03", "1234567890", "50000000", "DEPOSIT", "REF-001", "واریز نقدی"],
+                ["1404-05-03", "1234567890", "30000000", "WITHDRAWAL", "REF-002", "برداشت"],
             ]
         else:
             columns = ["شماره عضو", "مبلغ (ریال)", "شرح"]
@@ -73,7 +74,7 @@ class ExcelService:
         return output.getvalue()
     
     @staticmethod
-    def parse_excel(file_content: bytes) -> Tuple[List[Dict[str, Any]], List[str]]:
+    def parse_excel(file_content: bytes, date_calendar: str = "jalali") -> Tuple[List[Dict[str, Any]], List[str]]:
         """خواندن فایل Excel و تبدیل به لیست دیکشنری"""
         try:
             df = pd.read_excel(io.BytesIO(file_content), engine='openpyxl')
@@ -91,6 +92,7 @@ class ExcelService:
                 "تاریخ": "date",
                 "شماره حساب": "account_no",
                 "نوع": "transaction_type",
+                "شماره مرجع": "reference_no",
                 "کد ملی": "national_code",
                 "موبایل": "mobile",
                 "تلفن": "phone",
@@ -114,10 +116,11 @@ class ExcelService:
                             if isinstance(value, pd.Timestamp):
                                 value = value.date()
                             elif isinstance(value, str):
-                                try:
-                                    value = pd.to_datetime(value).date()
-                                except:
-                                    value = None
+                                normalized_value = value.strip()
+                                if date_calendar == "gregorian":
+                                    value = pd.to_datetime(normalized_value).date()
+                                else:
+                                    value = parse_jalali_date(normalized_value)
                         elif english_col == "member_no":
                             value = str(value).strip()
                         item[english_col] = value

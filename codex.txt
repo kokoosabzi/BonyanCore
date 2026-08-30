@@ -1,0 +1,12 @@
+# Codex handoff report
+
+This branch consolidates the reviewed financial-reporting and bank-import direction and adds the next hardening items:
+
+- Runtime table creation is disabled by default. Use Alembic for schema changes; set AUTO_CREATE_TABLES=true only for local bootstrap scenarios.
+- SQL echo is controlled by SQL_ECHO and defaults to false.
+- A database health endpoint is available at /health/db and is separate from the lightweight application health endpoint.
+- Bulk bank-statement import has an explicit date-calendar contract. Jalali is the default; Gregorian text dates can be selected explicitly for ISO-style bank exports.
+- CI installs requirements before compiling sources and running pytest so business-critical tests run against runtime dependencies instead of silently relying on missing packages.
+
+Recommended next product decision:
+- Decide whether financial obligations are effective on issue date or due date. If issue date is required, add an obligation_date column via Alembic and use it in financial statements.

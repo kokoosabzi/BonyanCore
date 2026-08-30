@@ -24,6 +24,7 @@
                         <option value="DEBIT">بدهکار گروهی</option>
                         <option value="CREDIT">بستانکار گروهی</option>
                         <option value="MEMBER">اعضای پروژه</option>
+                        <option value="BANK_STATEMENT">صورت‌حساب بانکی</option>
                     </select>
                 </div>
                 <div class="col-md-4 mb-3">
@@ -65,6 +66,14 @@
                         <option value="CHEQUE">چک</option>
                         <option value="OTHER">سایر</option>
                     </select>
+                </div>
+                <div class="col-md-3 mb-3" id="date_calendar_container" style="display:none;">
+                    <label class="form-label required">تقویم تاریخ فایل</label>
+                    <select name="date_calendar" class="form-select">
+                        <option value="jalali">جلالی</option>
+                        <option value="gregorian">میلادی ISO</option>
+                    </select>
+                    <small class="text-muted">برای فایل بانکی، تاریخ متنی را صریحاً جلالی یا میلادی تعیین کنید.</small>
                 </div>
             </div>
         </div>
@@ -108,10 +117,12 @@
         const value = this.value;
         const debitContainer = document.getElementById('debit_type_container');
         const creditContainer = document.getElementById('credit_type_container');
+        const dateCalendarContainer = document.getElementById('date_calendar_container');
         const downloadBtn = document.getElementById('downloadTemplateBtn');
         
         debitContainer.style.display = 'none';
         creditContainer.style.display = 'none';
+        dateCalendarContainer.style.display = 'none';
         
         if (value === 'DEBIT') {
             debitContainer.style.display = 'block';
@@ -129,6 +140,12 @@
             downloadBtn.disabled = false;
             downloadBtn.onclick = function() {
                 window.location.href = '/bulk-import/template/MEMBER';
+            };
+        } else if (value === 'BANK_STATEMENT') {
+            dateCalendarContainer.style.display = 'block';
+            downloadBtn.disabled = false;
+            downloadBtn.onclick = function() {
+                window.location.href = '/bulk-import/template/BANK_STATEMENT';
             };
         } else {
             downloadBtn.disabled = true;

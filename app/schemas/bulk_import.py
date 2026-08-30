@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List
-from datetime import date, datetime
+from datetime import date
 from app.schemas.jalali import JalaliDateInput, OptionalJalaliDateInput
 from enum import Enum
 
@@ -9,6 +9,10 @@ class BulkImportType(str, Enum):
     CREDIT = "CREDIT"
     MEMBER = "MEMBER"
     BANK_STATEMENT = "BANK_STATEMENT"
+
+class DateCalendar(str, Enum):
+    JALALI = "jalali"
+    GREGORIAN = "gregorian"
 
 class DebitType(str, Enum):
     PROJECT_PLAN = "PROJECT_PLAN"
@@ -25,13 +29,14 @@ class CreditType(str, Enum):
     OTHER = "OTHER"
 
 class BulkImportRow(BaseModel):
-    member_no: str
+    member_no: Optional[str] = None
     full_name: Optional[str] = None
     amount: Optional[int] = None
     description: Optional[str] = None
-    date: Optional[datetime] = None
+    date: Optional[date] = None
     account_no: Optional[str] = None
     transaction_type: Optional[str] = None
+    reference_no: Optional[str] = None
 
 class BulkImportCreate(BaseModel):
     import_type: BulkImportType
@@ -40,6 +45,7 @@ class BulkImportCreate(BaseModel):
     document_description: str
     debit_type: Optional[DebitType] = None
     credit_type: Optional[CreditType] = None
+    date_calendar: DateCalendar = DateCalendar.JALALI
     rows: List[BulkImportRow] = []
 
 class BulkImportResponse(BaseModel):
