@@ -8,10 +8,25 @@ from app.models import (
     Receipt, Payment, BankAccount, BankStatement,
     JournalEntry, JournalLine
 )
+from app.models.financial_obligation import ObligationStatus
+from app.models.financial_credit import CreditStatus
+from app.models.receipt import ReceiptStatus
+from app.models.payment import PaymentStatus
 from app.services.financial_obligation_service import FinancialObligationService
 from app.services.financial_credit_service import FinancialCreditService
 
 class ReportService:
+    @staticmethod
+    def _validate_date_range(
+        from_date: Optional[date], to_date: Optional[date]
+    ) -> None:
+        """Validate report boundaries before they are used in a financial query."""
+        for value in (from_date, to_date):
+            if value is not None and not isinstance(value, date):
+                raise ValueError("تاریخ فیلتر گزارش معتبر نیست")
+        if from_date and to_date and from_date > to_date:
+            raise ValueError("تاریخ شروع نمی‌تواند بعد از تاریخ پایان باشد")
+
     @staticmethod
     def get_customer_statement(
         db: Session,
@@ -19,34 +34,64 @@ class ReportService:
         from_date: Optional[date] = None,
         to_date: Optional[date] = None
     ) -> Dict[str, Any]:
-        """صورت حساب مشتری"""
+        """Return a customer statement filtered by effective financial dates.
+
+        Obligations are effective on their due date (or their creation date when
+        a due date was not supplied); credits are effective on ``credit_date``.
+        """
+        ReportService._validate_date_range(from_date, to_date)
         customer = db.query(Customer).filter(Customer.id == customer_id).first()
         if not customer:
             return {"error": "مشتری پیدا نشد"}
 
-        # بدهی‌ها
+        # Only active obligations and approved credits affect a customer's
+        # financial balance. Draft, cancelled, pending, and reversed records
+        # must not appear as posted financial movements.
         obligations = db.query(FinancialObligation).filter(
             FinancialObligation.customer_id == customer_id,
-            FinancialObligation.is_deleted == False
+            FinancialObligation.is_deleted == False,
+            FinancialObligation.status != ObligationStatus.CANCELLED,
         )
-        if from_date:
-            obligations = obligations.filter(FinancialObligation.created_at >= from_date)
-        if to_date:
-            obligations = obligations.filter(FinancialObligation.created_at <= to_date)
-        obligations = obligations.all()
+        obligation_effective_date = func.coalesce(
+            FinancialObligation.due_date, func.date(FinancialObligation.created_at)
+        )
 
-        # اعتبارات
         credits = db.query(FinancialCredit).filter(
             FinancialCredit.customer_id == customer_id,
-            FinancialCredit.is_deleted == False
+            FinancialCredit.is_deleted == False,
+            FinancialCredit.status == CreditStatus.APPROVED,
         )
+
+        # A range report must begin with movements recorded before its first
+        # day; otherwise every running balance in the selected period starts
+        # from zero and is financially misleading.
+        opening_obligations = []
+        opening_credits = []
         if from_date:
-            credits = credits.filter(FinancialCredit.created_at >= from_date)
+            opening_obligations = obligations.filter(
+                obligation_effective_date < from_date
+            ).all()
+            opening_credits = credits.filter(
+                FinancialCredit.credit_date < from_date
+            ).all()
+
+        if from_date:
+            obligations = obligations.filter(obligation_effective_date >= from_date)
         if to_date:
-            credits = credits.filter(FinancialCredit.created_at <= to_date)
+            obligations = obligations.filter(obligation_effective_date <= to_date)
+        obligations = obligations.all()
+
+        if from_date:
+            credits = credits.filter(FinancialCredit.credit_date >= from_date)
+        if to_date:
+            credits = credits.filter(FinancialCredit.credit_date <= to_date)
         credits = credits.all()
 
-        # محاسبه مجموع
+        opening_debit = sum(o.amount - o.paid_amount for o in opening_obligations)
+        opening_credit = sum(c.amount for c in opening_credits)
+        opening_balance = opening_debit - opening_credit
+
+        # محاسبه مجموع دوره
         total_obligations = sum([o.amount - o.paid_amount for o in obligations])
         total_credits = sum([c.amount for c in credits])
 
@@ -54,7 +99,7 @@ class ReportService:
         transactions = []
         for o in obligations:
             transactions.append({
-                "date": o.created_at,
+                "date": o.due_date or o.created_at.date(),
                 "type": "OBLIGATION",
                 "description": o.description or "بدهی",
                 "debit": o.amount - o.paid_amount,
@@ -63,7 +108,7 @@ class ReportService:
             })
         for c in credits:
             transactions.append({
-                "date": c.created_at,
+                "date": c.credit_date,
                 "type": "CREDIT",
                 "description": c.description or "اعتبار",
                 "debit": 0,
@@ -75,7 +120,7 @@ class ReportService:
         transactions.sort(key=lambda x: x["date"])
 
         # محاسبه مانده
-        running_balance = 0
+        running_balance = opening_balance
         for t in transactions:
             running_balance += t["debit"] - t["credit"]
             t["balance"] = running_balance
@@ -83,9 +128,13 @@ class ReportService:
         return {
             "customer": customer,
             "transactions": transactions,
+            "opening_debit": opening_debit,
+            "opening_credit": opening_credit,
+            "opening_balance": opening_balance,
             "total_obligations": total_obligations,
             "total_credits": total_credits,
-            "net_balance": total_obligations - total_credits,
+            "period_balance": total_obligations - total_credits,
+            "net_balance": running_balance,
             "total_debit": sum([t["debit"] for t in transactions]),
             "total_credit": sum([t["credit"] for t in transactions])
         }
@@ -162,13 +211,15 @@ class ReportService:
         to_date: Optional[date] = None
     ) -> Dict[str, Any]:
         """گزارش حساب بانکی"""
+        ReportService._validate_date_range(from_date, to_date)
         account = db.query(BankAccount).filter(BankAccount.id == account_id).first()
         if not account:
             return {"error": "حساب بانکی پیدا نشد"}
 
         deposits = db.query(Receipt).filter(
             Receipt.bank_account_id == account_id,
-            Receipt.is_deleted == False
+            Receipt.is_deleted == False,
+            Receipt.status == ReceiptStatus.CONFIRMED,
         )
         if from_date:
             deposits = deposits.filter(Receipt.receipt_date >= from_date)
@@ -178,7 +229,8 @@ class ReportService:
 
         withdrawals = db.query(Payment).filter(
             Payment.bank_account_id == account_id,
-            Payment.is_deleted == False
+            Payment.is_deleted == False,
+            Payment.status == PaymentStatus.CONFIRMED,
         )
         if from_date:
             withdrawals = withdrawals.filter(Payment.payment_date >= from_date)
@@ -192,17 +244,19 @@ class ReportService:
                 "date": d.receipt_date,
                 "description": d.description or "واریز",
                 "type": "DEPOSIT",
-                "amount": d.amount
+                "amount": d.amount,
+                "source_id": d.id,
             })
         for w in withdrawals:
             transactions.append({
                 "date": w.payment_date,
                 "description": w.description or "برداشت",
                 "type": "WITHDRAWAL",
-                "amount": w.amount
+                "amount": w.amount,
+                "source_id": w.id,
             })
 
-        transactions.sort(key=lambda x: x["date"])
+        transactions.sort(key=lambda x: (x["date"], x["source_id"]))
 
         balance = 0
         for t in transactions:
@@ -231,6 +285,8 @@ class ReportService:
         statement_date: Optional[date] = None
     ) -> Dict[str, Any]:
         """گزارش مغایرت بانکی"""
+        if statement_date is not None and not isinstance(statement_date, date):
+            raise ValueError("تاریخ صورتحساب معتبر نیست")
         account = db.query(BankAccount).filter(BankAccount.id == account_id).first()
         if not account:
             return {"error": "حساب بانکی پیدا نشد"}
@@ -240,20 +296,26 @@ class ReportService:
             BankStatement.is_deleted == False
         )
         if statement_date:
-            statements = statements.filter(BankStatement.statement_date == statement_date)
-        statements = statements.all()
+            statements = statements.filter(BankStatement.statement_date <= statement_date)
+        statements = statements.order_by(
+            BankStatement.statement_date.asc(), BankStatement.id.asc()
+        ).all()
 
-        receipts = db.query(Receipt).filter(
+        receipts_query = db.query(Receipt).filter(
             Receipt.bank_account_id == account_id,
             Receipt.is_deleted == False,
-            Receipt.status == "CONFIRMED"
-        ).all()
-
-        payments = db.query(Payment).filter(
+            Receipt.status == ReceiptStatus.CONFIRMED,
+        )
+        payments_query = db.query(Payment).filter(
             Payment.bank_account_id == account_id,
             Payment.is_deleted == False,
-            Payment.status == "CONFIRMED"
-        ).all()
+            Payment.status == PaymentStatus.CONFIRMED,
+        )
+        if statement_date:
+            receipts_query = receipts_query.filter(Receipt.receipt_date <= statement_date)
+            payments_query = payments_query.filter(Payment.payment_date <= statement_date)
+        receipts = receipts_query.all()
+        payments = payments_query.all()
 
         system_balance = 0
         for r in receipts:
@@ -261,26 +323,74 @@ class ReportService:
         for p in payments:
             system_balance -= p.amount
 
-        bank_balance = 0
-        if statements:
-            bank_balance = statements[-1].balance if statements else 0
+        bank_balance = (statements[-1].balance or 0) if statements else 0
 
-        unrecorded = []
+        system_movements = []
         for r in receipts:
-            if r.bank_account_id == account_id:
-                unrecorded.append({
-                    "date": r.receipt_date,
-                    "description": r.description or "واریز ثبت شده",
-                    "amount": r.amount,
-                    "type": "DEPOSIT",
-                    "status": "در سیستم ثبت شده"
+            system_movements.append({
+                "id": r.id,
+                "date": r.receipt_date,
+                "description": r.description or "واریز ثبت شده",
+                "amount": r.amount,
+                "type": "DEPOSIT",
+                "references": {r.receipt_no, r.cheque_no} - {None, ""},
+            })
+        for payment in payments:
+            system_movements.append({
+                "id": payment.id,
+                "date": payment.payment_date,
+                "description": payment.description or "برداشت ثبت شده",
+                "amount": payment.amount,
+                "type": "WITHDRAWAL",
+                "references": {payment.payment_no, payment.cheque_no} - {None, ""},
+            })
+        system_movements.sort(key=lambda item: (item["date"], item["id"]))
+
+        unmatched_system = list(system_movements)
+        unmatched_bank = []
+        matched_count = 0
+        for statement in statements:
+            statement_type = getattr(statement.statement_type, "value", statement.statement_type)
+            candidate = None
+            if statement.reference_no:
+                candidate = next(
+                    (
+                        movement for movement in unmatched_system
+                        if statement.reference_no in movement["references"]
+                        and movement["type"] == statement_type
+                        and movement["amount"] == statement.amount
+                    ),
+                    None,
+                )
+            if candidate is None:
+                candidate = next(
+                    (
+                        movement for movement in unmatched_system
+                        if movement["date"] == statement.statement_date
+                        and movement["type"] == statement_type
+                        and movement["amount"] == statement.amount
+                    ),
+                    None,
+                )
+            if candidate is None:
+                unmatched_bank.append({
+                    "date": statement.statement_date,
+                    "description": statement.description or "تراکنش صورتحساب بانک",
+                    "amount": statement.amount,
+                    "type": statement_type,
+                    "reference_no": statement.reference_no,
                 })
+            else:
+                unmatched_system.remove(candidate)
+                matched_count += 1
 
         return {
             "account": account,
             "system_balance": system_balance,
             "bank_balance": bank_balance,
             "difference": system_balance - bank_balance,
-            "unrecorded": unrecorded,
+            "matched_count": matched_count,
+            "system_unmatched": unmatched_system,
+            "bank_unmatched": unmatched_bank,
             "statement_count": len(statements)
         }

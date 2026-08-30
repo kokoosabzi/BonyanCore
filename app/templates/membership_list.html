@@ -24,7 +24,7 @@
         <tr>
             <td>{{ member.customer.full_name }} ({{ member.customer.customer_no }})</td>
             <td>{{ member.project.name }}</td>
-            <td>{{ member.join_date }}</td>
+            <td>{{ member.join_date|jalali }}</td>
             <td>
                 {% if member.status == 'ACTIVE' %}
                 <span class="badge bg-success">فعال</span>

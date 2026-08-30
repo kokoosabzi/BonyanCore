@@ -11,7 +11,7 @@
             <button onclick="window.print()" class="btn btn-light btn-sm">
                 <i class="bi bi-printer"></i> چاپ
             </button>
-            <a href="/reports/customer-statement/excel?customer_id={{ customer_id }}" class="btn btn-light btn-sm">
+            <a href="/reports/customer-statement/excel?customer_id={{ customer_id }}&from_date={{ from_date or '' }}&to_date={{ to_date or '' }}" class="btn btn-light btn-sm">
                 <i class="bi bi-file-excel"></i> Excel
             </a>
         </div>
@@ -46,6 +46,10 @@
             </div>
         </form>
 
+        {% if date_error %}
+        <div class="alert alert-danger" role="alert">{{ date_error }}</div>
+        {% endif %}
+
         {% if customer %}
         <!-- اطلاعات مشتری -->
         <div class="row mb-4">
@@ -57,26 +61,34 @@
 
         <!-- خلاصه مالی -->
         <div class="row mb-4">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="card text-center bg-light">
                     <div class="card-body">
-                        <h6 class="text-muted">مجموع بدهی</h6>
+                        <h6 class="text-muted">مانده ابتدای دوره</h6>
+                        <h3 class="{% if opening_balance >= 0 %}text-danger{% else %}text-success{% endif %}">{{ "{:,.0f}".format(opening_balance) }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center bg-light">
+                    <div class="card-body">
+                        <h6 class="text-muted">بدهی دوره</h6>
                         <h3 class="text-danger">{{ "{:,.0f}".format(total_obligations) }}</h3>
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="card text-center bg-light">
                     <div class="card-body">
-                        <h6 class="text-muted">مجموع پرداختی</h6>
+                        <h6 class="text-muted">اعتبار دوره</h6>
                         <h3 class="text-success">{{ "{:,.0f}".format(total_credits) }}</h3>
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="card text-center {% if net_balance >= 0 %}bg-success{% else %}bg-danger{% endif %} text-white">
                     <div class="card-body">
-                        <h6 class="text-white">مانده بدهی</h6>
+                        <h6 class="text-white">مانده پایان دوره</h6>
                         <h3>{{ "{:,.0f}".format(net_balance) }}</h3>
                     </div>
                 </div>
@@ -97,10 +109,19 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% set running_balance = 0 %}
+                    {% if from_date %}
+                    <tr class="table-info">
+                        <td>{{ from_date or '-' }}</td>
+                        <td><span class="badge bg-info">مانده افتتاحیه</span></td>
+                        <td>مانده پیش از بازه انتخاب‌شده</td>
+                        <td class="text-danger">{{ "{:,.0f}".format(opening_debit) if opening_debit else '-' }}</td>
+                        <td class="text-success">{{ "{:,.0f}".format(opening_credit) if opening_credit else '-' }}</td>
+                        <td>{{ "{:,.0f}".format(opening_balance) }}</td>
+                    </tr>
+                    {% endif %}
                     {% for item in transactions %}
                     <tr>
-                        <td>{{ item.date }}</td>
+                        <td>{{ item.date|jalali }}</td>
                         <td>
                             {% if item.type == 'OBLIGATION' %}
                             <span class="badge bg-danger">بدهی</span>
@@ -121,7 +142,7 @@
                 </tbody>
                 <tfoot>
                     <tr class="table-info fw-bold">
-                        <td colspan="3">جمع کل</td>
+                        <td colspan="3">گردش دوره / مانده پایان دوره</td>
                         <td>{{ "{:,.0f}".format(total_debit) }}</td>
                         <td>{{ "{:,.0f}".format(total_credit) }}</td>
                         <td>{{ "{:,.0f}".format(net_balance) }}</td>

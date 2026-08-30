@@ -29,7 +29,7 @@
             <td>{{ receipt.customer.full_name }}</td>
             <td>{{ receipt.project.name }}</td>
             <td>{{ "{:,.0f}".format(receipt.amount) }}</td>
-            <td>{{ receipt.receipt_date }}</td>
+            <td>{{ receipt.receipt_date|jalali }}</td>
             <td>
                 {% if receipt.payment_method == 'CASH' %}نقد
                 {% elif receipt.payment_method == 'CHEQUE' %}چک

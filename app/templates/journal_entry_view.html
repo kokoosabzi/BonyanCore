@@ -11,7 +11,7 @@
     </div>
     <div class="card-body">
         <div class="row g-3">
-            <div class="col-md-4"><strong>تاریخ:</strong> {{ journal.journal_date }}</div>
+            <div class="col-md-4"><strong>تاریخ:</strong> {{ journal.journal_date|jalali }}</div>
             <div class="col-md-4"><strong>وضعیت:</strong> {{ journal.status.value if journal.status.value is defined else journal.status }}</div>
             <div class="col-md-4"><strong>نوع مرجع:</strong> {{ journal.reference_type or 'عمومی' }}</div>
             <div class="col-12"><strong>شرح:</strong> {{ journal.description or '-' }}</div>

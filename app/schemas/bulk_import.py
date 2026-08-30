@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List
-from datetime import date, datetime
+from datetime import date
 from app.schemas.jalali import JalaliDateInput, OptionalJalaliDateInput
 from enum import Enum
 
@@ -25,13 +25,16 @@ class CreditType(str, Enum):
     OTHER = "OTHER"
 
 class BulkImportRow(BaseModel):
-    member_no: str
+    member_no: Optional[str] = None
     full_name: Optional[str] = None
     amount: Optional[int] = None
     description: Optional[str] = None
-    date: Optional[datetime] = None
+    # Spreadsheet dates use the same Jalali input convention as form dates.
+    # Native ``date`` values emitted by Excel readers are preserved as Gregorian.
+    date: OptionalJalaliDateInput = None
     account_no: Optional[str] = None
     transaction_type: Optional[str] = None
+    reference_no: Optional[str] = None
 
 class BulkImportCreate(BaseModel):
     import_type: BulkImportType

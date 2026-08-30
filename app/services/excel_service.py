@@ -5,6 +5,8 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill
 from fastapi.responses import StreamingResponse
 
+from app.utils.jalali import parse_jalali_date
+
 class ExcelService:
     @staticmethod
     def generate_template(import_type: str) -> bytes:
@@ -32,10 +34,10 @@ class ExcelService:
                 ["010002", "رضا احمدی", "9876543210", "09127654321", "", ""],
             ]
         elif import_type == "BANK_STATEMENT":
-            columns = ["تاریخ", "شماره حساب", "مبلغ (ریال)", "نوع", "شرح"]
+            columns = ["تاریخ", "شماره حساب", "مبلغ (ریال)", "نوع", "شماره مرجع", "شرح"]
             sample_data = [
-                ["1404-05-03", "1234567890", "50000000", "DEPOSIT", "واریز نقدی"],
-                ["1404-05-03", "1234567890", "30000000", "WITHDRAWAL", "برداشت"],
+                ["1404-05-03", "1234567890", "50000000", "DEPOSIT", "REF-1001", "واریز نقدی"],
+                ["1404-05-03", "1234567890", "30000000", "WITHDRAWAL", "REF-1002", "برداشت"],
             ]
         else:
             columns = ["شماره عضو", "مبلغ (ریال)", "شرح"]
@@ -91,6 +93,7 @@ class ExcelService:
                 "تاریخ": "date",
                 "شماره حساب": "account_no",
                 "نوع": "transaction_type",
+                "شماره مرجع": "reference_no",
                 "کد ملی": "national_code",
                 "موبایل": "mobile",
                 "تلفن": "phone",
@@ -115,8 +118,11 @@ class ExcelService:
                                 value = value.date()
                             elif isinstance(value, str):
                                 try:
-                                    value = pd.to_datetime(value).date()
-                                except:
+                                    # Dates entered in the supplied Persian template are
+                                    # Jalali.  Do not let pandas reinterpret e.g. 1404 as
+                                    # a Gregorian year.
+                                    value = parse_jalali_date(value)
+                                except ValueError:
                                     value = None
                         elif english_col == "member_no":
                             value = str(value).strip()
