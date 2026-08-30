@@ -1,4 +1,6 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, status
+from fastapi.responses import JSONResponse
+from sqlalchemy import text
 from app.routers.reports import router as reports_router
 from app.routers.auth import router as auth_router
 from app.core.config import settings
@@ -21,7 +23,8 @@ from app.core.templates import create_templates
 # contains every mapped table, not just models imported indirectly by routers.
 import app.models  # noqa: F401
 
-Base.metadata.create_all(bind=engine)
+if settings.AUTO_CREATE_TABLES:
+    Base.metadata.create_all(bind=engine)
 
 templates = create_templates()
 
@@ -63,3 +66,19 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+@app.get("/health/db")
+async def database_health_check():
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+    except Exception as exc:
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={
+                "status": "unhealthy",
+                "database": "unreachable",
+                "detail": exc.__class__.__name__,
+            },
+        )
+    return {"status": "healthy", "database": "reachable"}

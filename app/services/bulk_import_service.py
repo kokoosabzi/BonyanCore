@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from typing import List, Dict, Any, Tuple
 from datetime import date
 import jdatetime
+import uuid
 
 from app.models.customer import Customer
 from app.models.project_member import ProjectMember
@@ -13,6 +14,7 @@ from app.models.journal_line import JournalLine, DebitCredit
 from app.models.account import Account, AccountType
 from app.models.contract import Contract, ContractType, ContractStatus
 from app.models.bank_statement import BankStatement, StatementType
+from app.models.bank_account import BankAccount
 from app.schemas.bulk_import import BulkImportCreate, BulkImportRow, BulkImportType, DebitType, CreditType as CreditTypeEnum
 from app.services.document_sequence_service import DocumentSequenceService
 
@@ -386,6 +388,99 @@ class BulkImportService:
         }
 
     @staticmethod
+    def process_bank_statement_bulk(db: Session, data: BulkImportCreate) -> Dict[str, Any]:
+        """پردازش ورود گروهی صورت‌حساب بانکی با کنترل تکرارپذیری."""
+        errors = []
+        prepared_rows = []
+        seen_keys = set()
+
+        for index, row in enumerate(data.rows, start=1):
+            row_errors = []
+            if not row.date:
+                row_errors.append(f"ردیف {index}: تاریخ الزامی است")
+            if not row.account_no:
+                row_errors.append(f"ردیف {index}: شماره حساب الزامی است")
+            if not row.amount or row.amount <= 0:
+                row_errors.append(f"ردیف {index}: مبلغ باید مثبت باشد")
+            if row.transaction_type not in {StatementType.DEPOSIT.value, StatementType.WITHDRAWAL.value}:
+                row_errors.append(f"ردیف {index}: نوع تراکنش باید DEPOSIT یا WITHDRAWAL باشد")
+            if row_errors:
+                errors.extend(row_errors)
+                continue
+
+            account = db.query(BankAccount).filter(
+                BankAccount.account_no == row.account_no,
+                BankAccount.is_active == True,
+                BankAccount.is_deleted == False
+            ).first()
+            if not account:
+                errors.append(f"ردیف {index}: حساب بانکی فعال پیدا نشد")
+                continue
+
+            idempotency_key = (
+                account.id,
+                row.date,
+                row.reference_no or "",
+                row.amount,
+                row.transaction_type,
+            )
+            if idempotency_key in seen_keys:
+                errors.append(f"ردیف {index}: ردیف تکراری در فایل")
+                continue
+            seen_keys.add(idempotency_key)
+
+            duplicate_query = db.query(BankStatement).filter(
+                BankStatement.bank_account_id == account.id,
+                BankStatement.statement_date == row.date,
+                BankStatement.amount == row.amount,
+                BankStatement.statement_type == row.transaction_type,
+                BankStatement.is_deleted == False
+            )
+            if row.reference_no:
+                duplicate_query = duplicate_query.filter(BankStatement.reference_no == row.reference_no)
+            else:
+                duplicate_query = duplicate_query.filter(BankStatement.reference_no.is_(None))
+            if duplicate_query.first():
+                errors.append(f"ردیف {index}: صورت‌حساب بانکی قبلاً ثبت شده است")
+                continue
+
+            prepared_rows.append((account, row))
+
+        if errors:
+            return {
+                "success": False,
+                "message": "خطا در اعتبارسنجی صورت‌حساب بانکی",
+                "total_rows": 0,
+                "total_amount": 0,
+                "errors": errors
+            }
+
+        import_batch_id = f"BANK-IMPORT-{uuid.uuid4().hex[:12]}"
+        total_amount = 0
+        for account, row in prepared_rows:
+            statement = BankStatement(
+                bank_account_id=account.id,
+                statement_date=row.date,
+                description=row.description or data.document_description,
+                amount=row.amount,
+                statement_type=row.transaction_type,
+                reference_no=row.reference_no,
+                import_batch_id=import_batch_id
+            )
+            db.add(statement)
+            total_amount += row.amount or 0
+
+        return {
+            "success": True,
+            "message": f"{len(prepared_rows)} ردیف صورت‌حساب بانکی با موفقیت ثبت شد",
+            "journal_no": None,
+            "import_batch_id": import_batch_id,
+            "total_rows": len(prepared_rows),
+            "total_amount": total_amount,
+            "errors": []
+        }
+
+    @staticmethod
     def process_bulk_import(db: Session, data: BulkImportCreate) -> Dict[str, Any]:
         """پردازش اصلی ورود گروهی بر اساس نوع"""
         if data.import_type == BulkImportType.DEBIT:
@@ -394,6 +489,8 @@ class BulkImportService:
             return BulkImportService.process_credit_bulk(db, data)
         elif data.import_type == BulkImportType.MEMBER:
             return BulkImportService.process_member_bulk(db, data)
+        elif data.import_type == BulkImportType.BANK_STATEMENT:
+            return BulkImportService.process_bank_statement_bulk(db, data)
         else:
             return {
                 "success": False,
