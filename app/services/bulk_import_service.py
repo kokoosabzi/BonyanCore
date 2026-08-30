@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from typing import List, Dict, Any, Tuple
 from datetime import date
 import jdatetime
+import uuid
 
 from app.models.customer import Customer
 from app.models.project_member import ProjectMember
@@ -454,7 +455,7 @@ class BulkImportService:
                 "errors": errors
             }
 
-        import_batch_id = DocumentSequenceService.get_next_journal_number(db)
+        import_batch_id = f"BANK-IMPORT-{uuid.uuid4().hex[:12]}"
         total_amount = 0
         for account, row in prepared_rows:
             statement = BankStatement(
@@ -469,7 +470,6 @@ class BulkImportService:
             db.add(statement)
             total_amount += row.amount or 0
 
-        db.commit()
         return {
             "success": True,
             "message": f"{len(prepared_rows)} ردیف صورت‌حساب بانکی با موفقیت ثبت شد",

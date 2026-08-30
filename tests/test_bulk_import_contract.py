@@ -26,3 +26,13 @@ def test_startup_schema_creation_is_flag_gated():
     assert "AUTO_CREATE_TABLES" in config
     assert "if settings.AUTO_CREATE_TABLES:" in main
     assert "echo=settings.SQL_ECHO" in database
+
+
+def test_bank_statement_import_does_not_commit_before_log_creation():
+    service = Path("app/services/bulk_import_service.py").read_text(encoding="utf-8")
+    bank_import_section = service.split("def process_bank_statement_bulk", 1)[1].split(
+        "def process_bulk_import", 1
+    )[0]
+
+    assert "db.commit()" not in bank_import_section
+    assert "uuid.uuid4()" in bank_import_section

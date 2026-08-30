@@ -1,4 +1,6 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, status
+from fastapi.responses import JSONResponse
+from sqlalchemy import text
 from app.routers.reports import router as reports_router
 from app.routers.auth import router as auth_router
 from app.core.config import settings
@@ -67,8 +69,16 @@ async def health_check():
 
 @app.get("/health/db")
 async def database_health_check():
-    from sqlalchemy import text
-
-    with engine.connect() as connection:
-        connection.execute(text("SELECT 1"))
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+    except Exception as exc:
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={
+                "status": "unhealthy",
+                "database": "unreachable",
+                "detail": exc.__class__.__name__,
+            },
+        )
     return {"status": "healthy", "database": "reachable"}
