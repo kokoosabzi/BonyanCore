@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block page_title %}پروفایل عضو: {{ customer.full_name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between mb-3"><h4>{{ customer.customer_no }} — {{ customer.full_name }}</h4><a class="btn btn-outline-primary" href="/reports/customer-statement?customer_id={{ customer.id }}">صورت‌حساب کامل</a></div>
+<div class="row g-3 mb-4"><div class="col-md-4"><div class="card"><div class="card-body">مانده بدهی: <strong>{{ "{:,.0f}".format(net_balance) }}</strong></div></div></div><div class="col-md-4"><div class="card"><div class="card-body">دریافت قطعی: <strong>{{ "{:,.0f}".format(total_receipts) }}</strong></div></div></div><div class="col-md-4"><div class="card"><div class="card-body">تعداد پروژه‌ها: <strong>{{ memberships|length }}</strong></div></div></div></div>
+<div class="card"><div class="card-header">پروژه‌های عضو</div><ul class="list-group list-group-flush">{% for membership in memberships %}<li class="list-group-item"><a href="/pages/projects/{{ membership.project_id }}/profile">{{ membership.project.name }}</a> — {{ membership.status }}</li>{% else %}<li class="list-group-item">عضویتی ثبت نشده است.</li>{% endfor %}</ul></div>
+{% endblock %}

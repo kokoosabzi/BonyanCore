@@ -43,6 +43,14 @@
     </div>
 </div>
 
+<div class="row g-4 mt-1">
+    <div class="col-md-3"><div class="card text-center shadow-sm"><div class="card-body"><h6 class="text-danger">جمع بدهی</h6><h4>{{ "{:,.0f}".format(total_obligations) }}</h4></div></div></div>
+    <div class="col-md-3"><div class="card text-center shadow-sm"><div class="card-body"><h6 class="text-success">دریافت قطعی</h6><h4>{{ "{:,.0f}".format(total_receipts) }}</h4></div></div></div>
+    <div class="col-md-3"><div class="card text-center shadow-sm"><div class="card-body"><h6 class="text-success">اعتبارها</h6><h4>{{ "{:,.0f}".format(total_credits) }}</h4></div></div></div>
+    <div class="col-md-3"><div class="card text-center shadow-sm"><div class="card-body"><h6>مانده بدهی</h6><h4>{{ "{:,.0f}".format(net_balance) }}</h4></div></div></div>
+</div>
+
+<div class="row mt-4"><div class="col-md-6"><div class="card"><div class="card-header">روند دریافت ماهانه</div><ul class="list-group list-group-flush">{% for item in monthly_receipts %}<li class="list-group-item">{{ item.month }} <span class="float-start">{{ "{:,.0f}".format(item.amount) }}</span></li>{% else %}<li class="list-group-item">داده‌ای ثبت نشده است.</li>{% endfor %}</ul></div></div><div class="col-md-6"><div class="card"><div class="card-header">هشدارهای مدیریتی</div><div class="card-body">چک‌های سررسیدشده: <strong>{{ overdue_cheques|length }}</strong><br>پروژه‌های دارای کسری: <strong>{{ project_deficits|length }}</strong></div></div></div></div>
 <hr>
 
 <div class="row mt-4">

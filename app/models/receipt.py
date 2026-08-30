@@ -34,6 +34,10 @@ class Receipt(BaseModel):
     confirmed_by = Column(BigInteger, ForeignKey("users.id"), nullable=True)
     confirmed_at = Column(Date, nullable=True)
     journal_entry_id = Column(BigInteger, ForeignKey("journal_entries.id"), nullable=True)
+    cheque_status = Column(String(30), nullable=True)
+    cheque_collected_at = Column(Date, nullable=True)
+    cheque_returned_at = Column(Date, nullable=True)
+    cheque_return_reason = Column(Text, nullable=True)
 
     # Relationships
     customer = relationship("Customer")

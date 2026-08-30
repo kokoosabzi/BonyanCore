@@ -20,7 +20,7 @@
 
         <!-- فیلتر -->
         <form method="get" class="row g-3 mb-4">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label class="form-label">مشتری</label>
                 <select name="customer_id" class="form-select" onchange="this.form.submit()">
                     <option value="">انتخاب مشتری...</option>
@@ -57,7 +57,7 @@
 
         <!-- خلاصه مالی -->
         <div class="row mb-4">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="card text-center bg-light">
                     <div class="card-body">
                         <h6 class="text-muted">مجموع بدهی</h6>
@@ -65,15 +65,23 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="card text-center bg-light">
                     <div class="card-body">
-                        <h6 class="text-muted">مجموع پرداختی</h6>
+                        <h6 class="text-muted">اعتبارها</h6>
                         <h3 class="text-success">{{ "{:,.0f}".format(total_credits) }}</h3>
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
+                <div class="card text-center bg-light">
+                    <div class="card-body">
+                        <h6 class="text-muted">دریافت‌های تأییدشده</h6>
+                        <h3 class="text-success">{{ "{:,.0f}".format(total_receipts) }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
                 <div class="card text-center {% if net_balance >= 0 %}bg-success{% else %}bg-danger{% endif %} text-white">
                     <div class="card-body">
                         <h6 class="text-white">مانده بدهی</h6>
@@ -102,14 +110,14 @@
                     <tr>
                         <td>{{ item.date }}</td>
                         <td>
-                            {% if item.type == 'OBLIGATION' %}
+                            {% if item.source_type == 'OBLIGATION' %}
                             <span class="badge bg-danger">بدهی</span>
-                            {% elif item.type == 'CREDIT' %}
+                            {% elif item.source_type == 'CREDIT' %}
                             <span class="badge bg-success">پرداخت</span>
-                            {% elif item.type == 'RECEIPT' %}
+                            {% elif item.source_type == 'RECEIPT' %}
                             <span class="badge bg-info">فیش</span>
                             {% else %}
-                            <span class="badge bg-secondary">{{ item.type }}</span>
+                            <span class="badge bg-secondary">{{ item.source_type }}</span>
                             {% endif %}
                         </td>
                         <td>{{ item.description }}</td>
