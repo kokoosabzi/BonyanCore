@@ -6,6 +6,8 @@ class Settings(BaseSettings):
     APP_NAME: str = "Bonyan Core"
     APP_VERSION: str = "0.1.0"
     DEBUG: bool = True
+    SQL_ECHO: bool = False
+    AUTO_CREATE_TABLES: bool = False
 
     class Config:
         env_file = ".env"
