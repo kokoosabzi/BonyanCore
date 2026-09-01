@@ -14,11 +14,9 @@ class DocumentSequenceService:
         if not sequence:
             sequence = DocumentSequence(prefix=prefix, year=year, current_number=0)
             db.add(sequence)
-            db.commit()
-            db.refresh(sequence)
+            db.flush()
         sequence.current_number += 1
-        db.commit()
-        db.refresh(sequence)
+        db.flush()
         return f"{prefix}-{year}-{sequence.current_number:06d}"
 
     @staticmethod

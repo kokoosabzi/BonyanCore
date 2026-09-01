@@ -46,8 +46,13 @@
                 {% endif %}
             </td>
             <td>
-                <a href="/pages/receipts/{{ receipt.id }}/edit" class="btn btn-sm btn-primary">ویرایش</a>
-                <a href="/pages/receipts/{{ receipt.id }}/delete" class="btn btn-sm btn-danger">حذف</a>
+                {% if receipt.status == 'DRAFT' %}
+                <form method="post" action="/pages/receipts/{{ receipt.id }}/confirm" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-success">تأیید و ثبت سند</button>
+                </form>
+                {% else %}
+                <span class="text-muted small">سند {{ receipt.journal_entry_id or '—' }}</span>
+                {% endif %}
             </td>
         </tr>
         {% endfor %}

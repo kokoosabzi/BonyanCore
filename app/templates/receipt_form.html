@@ -29,6 +29,16 @@
         </select>
     </div>
 </div>
+<div class="mb-3">
+    <label class="form-label">قرارداد (اختیاری)</label>
+    <select name="contract_id" class="form-select">
+        <option value="">بدون تخصیص به قرارداد</option>
+        {% for contract in contracts %}
+        <option value="{{ contract.id }}" {% if receipt and receipt.contract_id == contract.id %}selected{% endif %}>{{ contract.contract_no }}</option>
+        {% endfor %}
+    </select>
+    <div class="form-text">قرارداد انتخاب‌شده باید متعلق به عضو و پروژه انتخاب‌شده باشد.</div>
+</div>
 <div class="row">
     <div class="col-md-6 mb-3">
         <label class="form-label required">مبلغ (ریال)</label>

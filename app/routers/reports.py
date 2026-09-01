@@ -66,7 +66,7 @@ async def customer_statement_page(
 
 @router.get("/customer-statement/excel")
 async def customer_statement_excel(
-    customer_id: int = Query(...),
+    customer_id: int = Query(...), from_date: Optional[str] = Query(None), to_date: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
     report = ReportService.get_customer_statement(db, customer_id, parse_jalali_date(from_date), parse_jalali_date(to_date))
@@ -78,7 +78,7 @@ async def customer_statement_excel(
     for t in report["transactions"]:
         data.append({
             "تاریخ": t["date"],
-            "نوع": t["type"],
+            "نوع": t["source_type"],
             "شرح": t["description"],
             "بدهکار": t["debit"],
             "بستانکار": t["credit"],
@@ -140,8 +140,9 @@ async def project_summary_excel(
             "شماره عضو": m["customer_no"],
             "نام": m["full_name"],
             "کل بدهی": m["total_obligations"],
-            "کل پرداخت": m["total_credits"],
-            "مانده": m["balance"]
+            "اعتبارها": m["total_credits"],
+            "دریافت‌های قطعی": m["total_receipts"],
+            "مانده": m["net_balance"]
         })
 
     df = pd.DataFrame(data)
@@ -248,3 +249,48 @@ async def member_debt_page(
             "debts": debts
         }
     )
+
+# ============================================================
+# خروجی PDF رسمی
+# ============================================================
+@router.get("/customer-statement/pdf")
+async def customer_statement_pdf(customer_id: int = Query(...), db: Session = Depends(get_db)):
+    from weasyprint import HTML
+    report = ReportService.get_customer_statement(db, customer_id)
+    if "error" in report:
+        raise HTTPException(status_code=404, detail=report["error"])
+    rows = "".join(f"<tr><td>{item['date']}</td><td>{item['description']}</td><td>{item['debit']:,}</td><td>{item['credit']:,}</td><td>{item['balance']:,}</td></tr>" for item in report["transactions"])
+    html = f"<html dir='rtl'><meta charset='utf-8'><h2>صورت‌حساب عضو: {report['customer'].full_name}</h2><p>مانده بدهی: {report['net_balance']:,} ریال</p><table border='1'><tr><th>تاریخ</th><th>شرح</th><th>بدهکار</th><th>بستانکار</th><th>مانده</th></tr>{rows}</table></html>"
+    return StreamingResponse(io.BytesIO(HTML(string=html).write_pdf()), media_type="application/pdf", headers={"Content-Disposition": f"attachment; filename=customer_statement_{customer_id}.pdf"})
+
+@router.get("/project-summary/pdf")
+async def project_summary_pdf(project_id: int = Query(...), db: Session = Depends(get_db)):
+    from weasyprint import HTML
+    report = ReportService.get_project_financial_summary(db, project_id)
+    if "error" in report:
+        raise HTTPException(status_code=404, detail=report["error"])
+    rows = "".join(f"<tr><td>{item['customer_no']}</td><td>{item['full_name']}</td><td>{item['net_balance']:,}</td></tr>" for item in report["member_summaries"])
+    html = f"<html dir='rtl'><meta charset='utf-8'><h2>خلاصه مالی پروژه: {report['project'].name}</h2><p>جمع بدهی: {report['total_obligations']:,} ریال</p><table border='1'><tr><th>شماره عضو</th><th>نام</th><th>مانده</th></tr>{rows}</table></html>"
+    return StreamingResponse(io.BytesIO(HTML(string=html).write_pdf()), media_type="application/pdf", headers={"Content-Disposition": f"attachment; filename=project_summary_{project_id}.pdf"})
+
+@router.get("/member-debt/excel")
+async def member_debt_excel(project_id: int = Query(...), db: Session = Depends(get_db)):
+    report = ReportService.get_project_financial_summary(db, project_id)
+    if "error" in report:
+        raise HTTPException(status_code=404, detail=report["error"])
+    rows = [item for item in report["member_summaries"] if item["net_balance"] > 0]
+    df = pd.DataFrame([{"شماره عضو": item["customer_no"], "نام": item["full_name"], "مانده بدهی": item["net_balance"]} for item in rows])
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine="openpyxl") as writer: df.to_excel(writer, index=False, sheet_name="بدهکاران")
+    output.seek(0)
+    return StreamingResponse(output, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": f"attachment; filename=member_debt_{project_id}.xlsx"})
+
+@router.get("/member-debt/pdf")
+async def member_debt_pdf(project_id: int = Query(...), db: Session = Depends(get_db)):
+    from weasyprint import HTML
+    report = ReportService.get_project_financial_summary(db, project_id)
+    if "error" in report:
+        raise HTTPException(status_code=404, detail=report["error"])
+    rows = "".join(f"<tr><td>{item['customer_no']}</td><td>{item['full_name']}</td><td>{item['net_balance']:,}</td></tr>" for item in report["member_summaries"] if item["net_balance"] > 0)
+    html = f"<html dir='rtl'><meta charset='utf-8'><h2>گزارش بدهکاران: {report['project'].name}</h2><table border='1'><tr><th>شماره عضو</th><th>نام</th><th>مانده بدهی</th></tr>{rows}</table></html>"
+    return StreamingResponse(io.BytesIO(HTML(string=html).write_pdf()), media_type="application/pdf", headers={"Content-Disposition": f"attachment; filename=member_debt_{project_id}.pdf"})

@@ -41,7 +41,7 @@ class JournalEntryService:
             raise ValueError("جمع بدهکار و بستانکار باید برابر باشد")
 
     @staticmethod
-    def create(db: Session, data: JournalEntryCreate) -> JournalEntry:
+    def create(db: Session, data: JournalEntryCreate, *, commit: bool = True) -> JournalEntry:
         journal_no = DocumentSequenceService.get_next_journal_number(db)
         journal_date = to_gregorian(data.journal_date)
 
@@ -62,8 +62,11 @@ class JournalEntryService:
         JournalEntryService._validate_balanced_lines(lines)
         db.add_all(lines)
 
-        db.commit()
-        db.refresh(journal)
+        if commit:
+            db.commit()
+            db.refresh(journal)
+        else:
+            db.flush()
         return journal
 
     @staticmethod

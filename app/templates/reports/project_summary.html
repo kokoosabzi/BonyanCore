@@ -71,8 +71,16 @@
             <div class="col-md-3">
                 <div class="card text-center bg-success text-white">
                     <div class="card-body">
-                        <h6>کل پرداختی</h6>
+                        <h6>اعتبارها</h6>
                         <h2>{{ "{:,.0f}".format(total_credits) }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center bg-info text-white">
+                    <div class="card-body">
+                        <h6>دریافت‌های قطعی</h6>
+                        <h2>{{ "{:,.0f}".format(total_receipts) }}</h2>
                     </div>
                 </div>
             </div>
@@ -95,7 +103,8 @@
                         <th>شماره عضو</th>
                         <th>نام</th>
                         <th>کل بدهی</th>
-                        <th>کل پرداخت</th>
+                        <th>اعتبارها</th>
+                        <th>دریافت قطعی</th>
                         <th>مانده</th>
                         <th>وضعیت</th>
                     </tr>
@@ -107,13 +116,14 @@
                         <td>{{ member.full_name }}</td>
                         <td>{{ "{:,.0f}".format(member.total_obligations) }}</td>
                         <td>{{ "{:,.0f}".format(member.total_credits) }}</td>
-                        <td class="{% if member.balance > 0 %}text-danger{% else %}text-success{% endif %}">
-                            {{ "{:,.0f}".format(member.balance) }}
+                        <td>{{ "{:,.0f}".format(member.total_receipts) }}</td>
+                        <td class="{% if member.net_balance > 0 %}text-danger{% else %}text-success{% endif %}">
+                            {{ "{:,.0f}".format(member.net_balance) }}
                         </td>
                         <td>
-                            {% if member.balance == 0 %}
+                            {% if member.net_balance == 0 %}
                             <span class="badge bg-success">تسویه</span>
-                            {% elif member.balance > 0 %}
+                            {% elif member.net_balance > 0 %}
                             <span class="badge bg-danger">بدهکار</span>
                             {% else %}
                             <span class="badge bg-warning">بستانکار</span>
