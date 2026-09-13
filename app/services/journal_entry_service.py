@@ -1,20 +1,19 @@
 from sqlalchemy.orm import Session
 from typing import List
-from datetime import datetime
 from app.models.journal_entry import JournalEntry, JournalStatus
 from app.models.journal_line import JournalLine, DebitCredit
 from app.schemas.journal_entry import JournalEntryCreate, JournalEntryUpdate, JournalLineCreate
 from app.services.document_sequence_service import DocumentSequenceService
+from app.utils.jalali import to_gregorian
 
 class JournalEntryService:
     @staticmethod
     def create(db: Session, data: JournalEntryCreate) -> JournalEntry:
-        journal_no = DocumentSequenceService.get_next_journal_number(db)
-        
-        # تبدیل تاریخ شمسی به میلادی (ساده)
-        from app.utils.jalali import to_gregorian
         journal_date = to_gregorian(data.journal_date)
-        
+        if journal_date is None:
+            raise ValueError("تاریخ سند الزامی است")
+
+        journal_no = DocumentSequenceService.get_next_journal_number(db)
         journal = JournalEntry(
             journal_no=journal_no,
             journal_date=journal_date,
@@ -25,11 +24,11 @@ class JournalEntryService:
         )
         db.add(journal)
         db.flush()
-        
+
         total_debit = 0
         total_credit = 0
         created_lines = 0
-        
+
         for line_data in data.lines:
             debit = line_data.debit or 0
             credit = line_data.credit or 0
@@ -64,11 +63,11 @@ class JournalEntryService:
         if created_lines < 2:
             db.rollback()
             raise ValueError("حداقل دو ردیف معتبر برای سند حسابداری لازم است")
-        
+
         if total_debit != total_credit:
             db.rollback()
             raise ValueError("جمع بدهکار و بستانکار باید برابر باشد")
-        
+
         db.commit()
         db.refresh(journal)
         return journal
@@ -96,7 +95,6 @@ class JournalEntryService:
             raise ValueError("سند ثبت شده قابل ویرایش نیست")
         update_data = data.model_dump(exclude_unset=True)
         if "journal_date" in update_data and update_data["journal_date"]:
-            from app.utils.jalali import to_gregorian
             update_data["journal_date"] = to_gregorian(update_data["journal_date"])
         for key, value in update_data.items():
             setattr(journal, key, value)
@@ -111,6 +109,12 @@ class JournalEntryService:
             return None
         if journal.status == JournalStatus.POSTED:
             raise ValueError("سند قبلاً ثبت شده است")
+        if len(journal.lines) < 2:
+            raise ValueError("سند باید حداقل دو ردیف داشته باشد")
+        total_debit = sum(line.amount for line in journal.lines if line.debit_credit == DebitCredit.DEBIT)
+        total_credit = sum(line.amount for line in journal.lines if line.debit_credit == DebitCredit.CREDIT)
+        if total_debit != total_credit:
+            raise ValueError("جمع بدهکار و بستانکار باید برابر باشد")
         journal.status = JournalStatus.POSTED
         db.commit()
         db.refresh(journal)
