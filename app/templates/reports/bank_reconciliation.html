@@ -1,6 +1,38 @@
 {% extends "base.html" %}
 
-{% block page_icon %}arrows-expand{% endblock %}
+{% block page_icon %}arrows-expand
+<script>
+document.querySelectorAll(".reconcile-btn").forEach(function (button) {
+    button.addEventListener("click", async function () {
+        const statementId = this.dataset.statementId;
+        const select = document.querySelector(
+            '.reconciliation-target[data-statement-id="' + statementId + '"]'
+        );
+        const targetId = select ? select.value : "";
+        if (!targetId) {
+            alert("ابتدا سند موردنظر را انتخاب کنید.");
+            return;
+        }
+
+        const payload = select.dataset.type === "DEPOSIT"
+            ? { receipt_id: Number(targetId) }
+            : { payment_id: Number(targetId) };
+
+        const response = await fetch("/api/v1/bank-statements/" + statementId + "/reconcile", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            alert(data.detail || "ثبت تطبیق انجام نشد.");
+            return;
+        }
+        window.location.reload();
+    });
+});
+</script>
+{% endblock %}
 {% block page_title %}گزارش مغایرت بانکی{% endblock %}
 
 {% block content %}
@@ -84,6 +116,7 @@
                             <th>مبلغ</th>
                             <th>نوع</th>
                             <th>وضعیت</th>
+                            <th>تطبیق دستی</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -100,6 +133,22 @@
                                 {% endif %}
                             </td>
                             <td><span class="badge bg-warning">{{ item.status }}</span></td>
+                            <td>
+                                {% if item.candidate_system_transactions %}
+                                <select class="form-select form-select-sm reconciliation-target"
+                                        data-statement-id="{{ item.id }}"
+                                        data-type="{{ item.type }}">
+                                    <option value="">انتخاب سند...</option>
+                                    {% for candidate in item.candidate_system_transactions %}
+                                    <option value="{{ candidate.id }}">{{ candidate.document_no }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="button" class="btn btn-sm btn-success mt-1 reconcile-btn"
+                                        data-statement-id="{{ item.id }}">تطبیق</button>
+                                {% else %}
+                                <span class="text-muted">سند هم‌مبلغ/هم‌تاریخ یافت نشد</span>
+                                {% endif %}
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
