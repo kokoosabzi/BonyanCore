@@ -12,3 +12,5 @@ from app.routers.auth import router as auth_router
 from app.routers.reports import router as reports_router
 from app.routers.transfer import router as transfer_router
 from app.routers.receipt import router as receipt_router
+
+from app.routers.bank_statement import router as bank_statement_router
