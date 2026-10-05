@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional
-from datetime import date, datetime
-from app.schemas.jalali import JalaliDateInput, OptionalJalaliDateInput
+from datetime import datetime
+from app.schemas.jalali import JalaliDateInput
 from enum import Enum
 
 class CreditType(str, Enum):
@@ -20,31 +20,31 @@ class CreditStatus(str, Enum):
 class FinancialCreditBase(BaseModel):
     customer_id: int
     project_id: int
-    contract_id: Optional[int] = None
+    contract_id: int | None = None
     credit_type: CreditType
     amount: int = Field(..., gt=0, description="مبلغ اعتبار")
-    status: Optional[CreditStatus] = CreditStatus.PENDING
+    status: CreditStatus | None = CreditStatus.PENDING
     credit_date: JalaliDateInput
-    description: Optional[str] = None
-    reference_id: Optional[str] = None
-    bank_account_id: Optional[int] = None
-    cheque_no: Optional[str] = Field(None, max_length=50)
+    description: str | None = None
+    reference_id: str | None = None
+    bank_account_id: int | None = None
+    cheque_no: str | None = Field(None, max_length=50)
 
 class FinancialCreditCreate(FinancialCreditBase):
     pass
 
 class FinancialCreditUpdate(BaseModel):
-    amount: Optional[int] = None
-    status: Optional[CreditStatus] = None
-    description: Optional[str] = None
-    bank_account_id: Optional[int] = None
-    cheque_no: Optional[str] = Field(None, max_length=50)
+    amount: int | None = Field(None, gt=0, description="مبلغ اعتبار")
+    status: CreditStatus | None = None
+    description: str | None = None
+    bank_account_id: int | None = None
+    cheque_no: str | None = Field(None, max_length=50)
 
 class FinancialCreditResponse(FinancialCreditBase):
     id: int
     credit_no: str
-    receipt_id: Optional[int] = None
-    journal_entry_id: Optional[int] = None
+    receipt_id: int | None = None
+    journal_entry_id: int | None = None
     created_at: datetime
     updated_at: datetime
 
