@@ -480,14 +480,26 @@ class ReportService:
                     "status": "در سیستم ثبت شده ولی در بانک یافت نشد",
                 })
 
-        bank_only = [
-            {
+        bank_only = []
+        for bank_tx in bank_transactions:
+            if bank_tx["id"] in used_bank_ids:
+                continue
+            candidates = [
+                {
+                    "id": tx["id"],
+                    "document_no": tx["document_no"],
+                    "type": tx["type"],
+                }
+                for tx in system_transactions
+                if tx["date"] == bank_tx["date"]
+                and tx["amount"] == bank_tx["amount"]
+                and tx["type"] == bank_tx["type"]
+            ]
+            bank_only.append({
                 **bank_tx,
                 "status": "در بانک ثبت شده ولی در سیستم یافت نشد",
-            }
-            for bank_tx in bank_transactions
-            if bank_tx["id"] not in used_bank_ids
-        ]
+                "candidate_system_transactions": candidates,
+            })
 
         # مانده صورت‌حساب بانک، مانده واقعی اعلام‌شده توسط بانک است.
         bank_balance = latest_statement.balance
