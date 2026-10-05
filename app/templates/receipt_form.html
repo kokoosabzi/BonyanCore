@@ -8,7 +8,7 @@
 <div class="row">
     <div class="col-md-6 mb-3">
         <label class="form-label required">مشتری</label>
-        <select name="customer_id" class="form-select" required>
+        <select name="customer_id" class="form-select" required {% if receipt %}disabled{% endif %}>
             <option value="">انتخاب مشتری...</option>
             {% for customer in customers %}
             <option value="{{ customer.id }}" {% if receipt and receipt.customer_id == customer.id %}selected{% endif %}>
@@ -19,7 +19,7 @@
     </div>
     <div class="col-md-6 mb-3">
         <label class="form-label required">پروژه</label>
-        <select name="project_id" class="form-select" required>
+        <select name="project_id" class="form-select" required {% if receipt %}disabled{% endif %}>
             <option value="">انتخاب پروژه...</option>
             {% for project in projects %}
             <option value="{{ project.id }}" {% if receipt and receipt.project_id == project.id %}selected{% endif %}>
@@ -47,8 +47,10 @@
         <select name="payment_method" class="form-select" required>
             <option value="CASH" {% if receipt and receipt.payment_method == 'CASH' %}selected{% endif %}>نقد</option>
             <option value="CHEQUE" {% if receipt and receipt.payment_method == 'CHEQUE' %}selected{% endif %}>چک</option>
+            <option value="DEPOSIT_SLIP" {% if receipt and receipt.payment_method == 'DEPOSIT_SLIP' %}selected{% endif %}>فیش واریز</option>
             <option value="TRANSFER" {% if receipt and receipt.payment_method == 'TRANSFER' %}selected{% endif %}>انتقال بانکی</option>
             <option value="POS" {% if receipt and receipt.payment_method == 'POS' %}selected{% endif %}>کارتخوان</option>
+            <option value="OTHER" {% if receipt and receipt.payment_method == 'OTHER' %}selected{% endif %}>سایر</option>
         </select>
     </div>
     <div class="col-md-6 mb-3">
@@ -57,10 +59,51 @@
             <option value="">انتخاب حساب...</option>
             {% for account in bank_accounts %}
             <option value="{{ account.id }}" {% if receipt and receipt.bank_account_id == account.id %}selected{% endif %}>
-                {{ account.account_no }} - {{ account.bank_name }}
+                {{ account.account_no }} - {{ account.bank.bank_name if account.bank else '' }}
             </option>
             {% endfor %}
         </select>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label class="form-label">نام بانک صادرکننده</label>
+        <input type="text" name="bank_name" class="form-control"
+               value="{{ receipt.bank_name if receipt else '' }}">
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label">شعبه بانک</label>
+        <input type="text" name="bank_branch" class="form-control"
+               value="{{ receipt.bank_branch if receipt else '' }}">
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label class="form-label">صاحب حساب یا صادرکننده</label>
+        <input type="text" name="drawer_name" class="form-control"
+               value="{{ receipt.drawer_name if receipt else '' }}">
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label">در وجه</label>
+        <input type="text" name="payee_name" class="form-control"
+               value="{{ receipt.payee_name if receipt else '' }}">
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-4 mb-3">
+        <label class="form-label">نوع سند واریز</label>
+        <input type="text" name="deposit_document_type" class="form-control"
+               value="{{ receipt.deposit_document_type if receipt else '' }}">
+    </div>
+    <div class="col-md-4 mb-3">
+        <label class="form-label">نام واریزکننده</label>
+        <input type="text" name="depositor_name" class="form-control"
+               value="{{ receipt.depositor_name if receipt else '' }}">
+    </div>
+    <div class="col-md-4 mb-3">
+        <label class="form-label">شماره پیگیری</label>
+        <input type="text" name="reference_no" class="form-control"
+               value="{{ receipt.reference_no if receipt else '' }}">
     </div>
 </div>
 <div class="row">

@@ -1,15 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Form, status, Query
+from fastapi import APIRouter, Depends, HTTPException, Request, Form, Query
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from typing import Optional
+from urllib.parse import urlencode
 
+from app.core.auth import get_current_user
 from app.core.database import get_db
 from app.services.customer_service import CustomerService
 from app.services.project_service import ProjectService
 from app.services.project_member_service import ProjectMemberService
 from app.services.contract_service import ContractService
 from app.services.financial_obligation_service import FinancialObligationService
-from app.services.financial_credit_service import FinancialCreditService
 from app.services.bank_service import BankService
 from app.services.bank_account_service import BankAccountService
 from app.services.unit_service import UnitService
@@ -17,6 +18,7 @@ from app.services.receipt_service import ReceiptService
 from app.core.templates import create_templates
 from app.models.project_member import ProjectMember
 from app.models.receipt import Receipt
+from app.models.user import User
 
 router = APIRouter(prefix="/pages", tags=["Pages"])
 templates = create_templates()
@@ -24,23 +26,6 @@ templates = create_templates()
 # ============================================================
 # صفحه اصلی (داشبورد)
 # ============================================================
-@router.get("/", response_class=HTMLResponse)
-async def dashboard(request: Request, db: Session = Depends(get_db)):
-    projects = ProjectService.get_all(db)
-    customers = CustomerService.get_all(db)
-    members = db.query(ProjectMember).filter(ProjectMember.is_deleted == False).all()
-    contracts = ContractService.get_all(db)
-    
-    return templates.TemplateResponse(
-        "dashboard.html",
-        {
-            "request": request,
-            "projects_count": len(projects),
-            "customers_count": len(customers),
-            "members_count": len(members),
-            "contracts_count": len(contracts)
-        }
-    )
 @router.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request, db: Session = Depends(get_db)):
     projects = ProjectService.get_all(db)
@@ -64,10 +49,6 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
 # ============================================================
 # پروژه‌ها
 # ============================================================
-@router.get("/projects", response_class=HTMLResponse)
-async def project_list(request: Request, db: Session = Depends(get_db)):
-    projects = ProjectService.get_all(db)
-    return templates.TemplateResponse("project_list.html", {"request": request, "projects": projects})
 # و برای سایر صفحات، active_page را اضافه کن:
 # مثلاً برای project_list:
 @router.get("/projects", response_class=HTMLResponse)
@@ -75,7 +56,12 @@ async def project_list(request: Request, db: Session = Depends(get_db)):
     projects = ProjectService.get_all(db)
     return templates.TemplateResponse(
         "project_list.html",
-        {"request": request, "active_page": "projects", "projects": projects}
+        {
+            "request": request,
+            "active_page": "projects",
+            "projects": projects,
+            "delete_success": request.query_params.get("deleted") == "1",
+        }
     )
 
 @router.get("/projects/create", response_class=HTMLResponse)
@@ -141,8 +127,9 @@ async def project_edit(
 
 @router.post("/projects/{project_id}/delete")
 async def project_delete(project_id: int, db: Session = Depends(get_db)):
-    ProjectService.delete(db, project_id)
-    return RedirectResponse("/pages/projects", status_code=303)
+    if not ProjectService.delete(db, project_id):
+        raise HTTPException(status_code=404, detail="پروژه پیدا نشد")
+    return RedirectResponse("/pages/projects?deleted=1", status_code=303)
 
 # ============================================================
 # ویرایش مشتری
@@ -186,8 +173,9 @@ async def customer_edit(
 
 @router.post("/customers/{customer_id}/delete")
 async def customer_delete(customer_id: int, db: Session = Depends(get_db)):
-    CustomerService.delete(db, customer_id)
-    return RedirectResponse("/pages/customers", status_code=303)
+    if not CustomerService.delete(db, customer_id):
+        raise HTTPException(status_code=404, detail="مشتری پیدا نشد")
+    return RedirectResponse("/pages/customers?deleted=1", status_code=303)
 
 # ============================================================
 # ویرایش عضویت
@@ -231,84 +219,6 @@ async def membership_delete(member_id: int, db: Session = Depends(get_db)):
     ProjectMemberService.delete(db, member_id)
     return RedirectResponse("/pages/memberships", status_code=303)
 
-# ============================================================
-# گزارشات
-# ============================================================
-@router.get("/reports/customer-statement", response_class=HTMLResponse)
-async def customer_statement_report(
-    request: Request,
-    customer_id: Optional[int] = Query(None),
-    from_date: Optional[str] = Query(None),
-    to_date: Optional[str] = Query(None),
-    db: Session = Depends(get_db)
-):
-    customers = CustomerService.get_all(db)
-    report_data = {}
-    if customer_id:
-        # دریافت اطلاعات مشتری و تراکنش‌ها
-        customer = CustomerService.get_by_id(db, customer_id)
-        report_data = {
-            "customer": customer,
-            "transactions": [],  # محاسبه بعدی
-            "total_obligations": 0,
-            "total_credits": 0,
-            "net_balance": 0
-        }
-    return templates.TemplateResponse(
-        "reports/customer_statement.html",
-        {
-            "request": request,
-            "active_page": "reports",
-            "customers": customers,
-            "customer_id": customer_id,
-            "from_date": from_date,
-            "to_date": to_date,
-            **report_data
-        }
-    )
-
-@router.get("/reports/project-summary", response_class=HTMLResponse)
-async def project_summary_report(
-    request: Request,
-    project_id: Optional[int] = Query(None),
-    from_date: Optional[str] = Query(None),
-    to_date: Optional[str] = Query(None),
-    db: Session = Depends(get_db)
-):
-    projects = ProjectService.get_all(db)
-    return templates.TemplateResponse(
-        "reports/project_summary.html",
-        {
-            "request": request,
-            "active_page": "reports",
-            "projects": projects,
-            "project_id": project_id,
-            "from_date": from_date,
-            "to_date": to_date
-        }
-    )
-
-@router.get("/reports/bank", response_class=HTMLResponse)
-async def bank_report(
-    request: Request,
-    account_id: Optional[int] = Query(None),
-    from_date: Optional[str] = Query(None),
-    to_date: Optional[str] = Query(None),
-    db: Session = Depends(get_db)
-):
-    from app.services.bank_account_service import BankAccountService
-    accounts = BankAccountService.get_all(db)
-    return templates.TemplateResponse(
-        "reports/bank_report.html",
-        {
-            "request": request,
-            "active_page": "reports",
-            "accounts": accounts,
-            "account_id": account_id,
-            "from_date": from_date,
-            "to_date": to_date
-        }
-    )
 # ============================================================
 # واحدها (Units)
 # ============================================================
@@ -357,7 +267,14 @@ async def unit_create(
 @router.get("/customers", response_class=HTMLResponse)
 async def customer_list(request: Request, db: Session = Depends(get_db)):
     customers = CustomerService.get_all(db)
-    return templates.TemplateResponse("customer_list.html", {"request": request, "customers": customers})
+    return templates.TemplateResponse(
+        "customer_list.html",
+        {
+            "request": request,
+            "customers": customers,
+            "delete_success": request.query_params.get("deleted") == "1",
+        },
+    )
 
 @router.get("/customers/create", response_class=HTMLResponse)
 async def customer_create_form(request: Request):
@@ -451,12 +368,51 @@ async def final_contract_create_form(request: Request, db: Session = Depends(get
         "final_contract_form.html",
         {"request": request, "contract": None, "members": members, "units": units}
     )
+
+@router.get("/contracts/{contract_id}/edit", response_class=HTMLResponse)
+async def contract_edit_form(request: Request, contract_id: int, db: Session = Depends(get_db)):
+    contract = ContractService.get_by_id(db, contract_id)
+    if not contract:
+        raise HTTPException(status_code=404, detail="قرارداد پیدا نشد")
+    return templates.TemplateResponse(
+        "contract_form.html",
+        {"request": request, "contract": contract},
+    )
+
+@router.post("/contracts/{contract_id}/edit")
+async def contract_edit(
+    contract_id: int,
+    status: str = Form("DRAFT"),
+    end_date: str = Form(""),
+    description: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    from app.schemas.contract import ContractUpdate
+
+    try:
+        data = ContractUpdate(
+            status=status,
+            end_date=end_date if end_date else None,
+            description=description if description else None,
+        )
+        if not ContractService.update(db, contract_id, data):
+            raise HTTPException(status_code=404, detail="قرارداد پیدا نشد")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return RedirectResponse("/pages/contracts", status_code=303)
+
+@router.post("/contracts/{contract_id}/delete")
+async def contract_delete(contract_id: int, db: Session = Depends(get_db)):
+    if not ContractService.delete(db, contract_id):
+        raise HTTPException(status_code=404, detail="قرارداد پیدا نشد")
+    return RedirectResponse("/pages/contracts", status_code=303)
+
 # ============================================================
 # فیش‌ها (Receipts)
 # ============================================================
 @router.get("/receipts", response_class=HTMLResponse)
 async def receipt_list(request: Request, db: Session = Depends(get_db)):
-    receipts = db.query(Receipt).filter(Receipt.is_deleted == False).all()
+    receipts = ReceiptService.get_all(db)
     return templates.TemplateResponse("receipt_list.html", {"request": request, "receipts": receipts})
 
 @router.get("/receipts/create", response_class=HTMLResponse)
@@ -480,8 +436,16 @@ async def receipt_create(
     bank_account_id: Optional[int] = Form(None),
     cheque_no: str = Form(""),
     cheque_due_date: str = Form(""),
+    bank_name: str = Form(""),
+    bank_branch: str = Form(""),
+    drawer_name: str = Form(""),
+    payee_name: str = Form(""),
+    deposit_document_type: str = Form(""),
+    depositor_name: str = Form(""),
+    reference_no: str = Form(""),
     description: str = Form(""),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     from app.schemas.receipt import ReceiptCreate
     data = ReceiptCreate(
@@ -493,9 +457,108 @@ async def receipt_create(
         bank_account_id=bank_account_id if bank_account_id else None,
         cheque_no=cheque_no if cheque_no else None,
         cheque_due_date=cheque_due_date if cheque_due_date else None,
+        bank_name=bank_name if bank_name else None,
+        bank_branch=bank_branch if bank_branch else None,
+        drawer_name=drawer_name if drawer_name else None,
+        payee_name=payee_name if payee_name else None,
+        deposit_document_type=(
+            deposit_document_type if deposit_document_type else None
+        ),
+        depositor_name=depositor_name if depositor_name else None,
+        reference_no=reference_no if reference_no else None,
         description=description if description else None
     )
-    ReceiptService.create(db, data)
+    ReceiptService.create(db, data, operator_id=current_user.id)
+    return RedirectResponse("/pages/receipts", status_code=303)
+
+@router.get("/receipts/{receipt_id}/edit", response_class=HTMLResponse)
+async def receipt_edit_form(request: Request, receipt_id: int, db: Session = Depends(get_db)):
+    receipt = ReceiptService.get_by_id(db, receipt_id)
+    if not receipt:
+        raise HTTPException(status_code=404, detail="فیش پیدا نشد")
+    return templates.TemplateResponse(
+        "receipt_form.html",
+        {
+            "request": request,
+            "receipt": receipt,
+            "customers": CustomerService.get_all(db),
+            "projects": ProjectService.get_all(db),
+            "bank_accounts": BankAccountService.get_all(db),
+        },
+    )
+
+@router.post("/receipts/{receipt_id}/edit")
+async def receipt_edit(
+    receipt_id: int,
+    amount: int = Form(...),
+    receipt_date: str = Form(...),
+    payment_method: str = Form(...),
+    bank_account_id: Optional[int] = Form(None),
+    cheque_no: str = Form(""),
+    cheque_due_date: str = Form(""),
+    bank_name: str = Form(""),
+    bank_branch: str = Form(""),
+    drawer_name: str = Form(""),
+    payee_name: str = Form(""),
+    deposit_document_type: str = Form(""),
+    depositor_name: str = Form(""),
+    reference_no: str = Form(""),
+    description: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    from app.schemas.receipt import ReceiptUpdate
+
+    try:
+        data = ReceiptUpdate(
+            amount=amount,
+            receipt_date=receipt_date,
+            payment_method=payment_method,
+            bank_account_id=bank_account_id,
+            cheque_no=cheque_no if cheque_no else None,
+            cheque_due_date=cheque_due_date if cheque_due_date else None,
+            bank_name=bank_name if bank_name else None,
+            bank_branch=bank_branch if bank_branch else None,
+            drawer_name=drawer_name if drawer_name else None,
+            payee_name=payee_name if payee_name else None,
+            deposit_document_type=(
+                deposit_document_type if deposit_document_type else None
+            ),
+            depositor_name=depositor_name if depositor_name else None,
+            reference_no=reference_no if reference_no else None,
+            description=description if description else None,
+        )
+        if not ReceiptService.update(db, receipt_id, data):
+            raise HTTPException(status_code=404, detail="فیش پیدا نشد")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return RedirectResponse("/pages/receipts", status_code=303)
+
+@router.post("/receipts/{receipt_id}/delete")
+async def receipt_delete(receipt_id: int, db: Session = Depends(get_db)):
+    try:
+        if not ReceiptService.delete(db, receipt_id):
+            raise HTTPException(status_code=404, detail="فیش پیدا نشد")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return RedirectResponse("/pages/receipts", status_code=303)
+
+
+@router.post("/receipts/{receipt_id}/confirm")
+async def receipt_confirm(
+    receipt_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    try:
+        if not ReceiptService.confirm(
+            db,
+            receipt_id,
+            confirmed_by=current_user.id,
+            username=current_user.username,
+        ):
+            raise HTTPException(status_code=404, detail="فیش پیدا نشد")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     return RedirectResponse("/pages/receipts", status_code=303)
 
 # ============================================================
@@ -523,9 +586,9 @@ async def obligation_create(
     obligation_type: str = Form(...),
     amount: int = Form(...),
     due_date: str = Form(""),
-    paid_amount: int = Form(0),
     description: str = Form(""),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     from app.schemas.financial_obligation import FinancialObligationCreate
     data = FinancialObligationCreate(
@@ -534,10 +597,57 @@ async def obligation_create(
         obligation_type=obligation_type,
         amount=amount,
         due_date=due_date if due_date else None,
-        paid_amount=paid_amount if paid_amount else 0,
         description=description if description else None
     )
-    FinancialObligationService.create(db, data)
+    FinancialObligationService.create(
+        db,
+        data,
+        posted_by=current_user.username,
+    )
+    return RedirectResponse("/pages/obligations", status_code=303)
+
+@router.get("/obligations/{obligation_id}/edit", response_class=HTMLResponse)
+async def obligation_edit_form(request: Request, obligation_id: int, db: Session = Depends(get_db)):
+    obligation = FinancialObligationService.get_by_id(db, obligation_id)
+    if not obligation:
+        raise HTTPException(status_code=404, detail="بدهی پیدا نشد")
+    return templates.TemplateResponse(
+        "obligation_form.html",
+        {
+            "request": request,
+            "obligation": obligation,
+            "customers": CustomerService.get_all(db),
+            "projects": ProjectService.get_all(db),
+        },
+    )
+
+@router.post("/obligations/{obligation_id}/edit")
+async def obligation_edit(
+    obligation_id: int,
+    due_date: str = Form(""),
+    description: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    from app.schemas.financial_obligation import FinancialObligationUpdate
+
+    try:
+        data = FinancialObligationUpdate(
+            due_date=due_date if due_date else None,
+            description=description if description else None,
+        )
+        if not FinancialObligationService.update(db, obligation_id, data):
+            raise HTTPException(status_code=404, detail="بدهی پیدا نشد")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return RedirectResponse("/pages/obligations", status_code=303)
+
+@router.post("/obligations/{obligation_id}/delete")
+async def obligation_delete(obligation_id: int, db: Session = Depends(get_db)):
+    try:
+        if not FinancialObligationService.delete(db, obligation_id):
+            raise HTTPException(status_code=404, detail="بدهی پیدا نشد")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     return RedirectResponse("/pages/obligations", status_code=303)
 
 # ============================================================
@@ -568,89 +678,6 @@ async def bank_create(
     )
     BankService.create(db, data)
     return RedirectResponse("/pages/banks", status_code=303)
-# ============================================================
-# گزارشات (موقت - فقط نمایش فرم)
-# ============================================================
-@router.get("/reports/customer-statement", response_class=HTMLResponse)
-async def customer_statement_report(
-    request: Request,
-    customer_id: Optional[int] = Query(None),
-    from_date: Optional[str] = Query(None),
-    to_date: Optional[str] = Query(None),
-    db: Session = Depends(get_db)
-):
-    customers = CustomerService.get_all(db)
-    return templates.TemplateResponse(
-        "reports/customer_statement.html",
-        {
-            "request": request,
-            "active_page": "reports",
-            "customers": customers,
-            "customer_id": customer_id,
-            "from_date": from_date,
-            "to_date": to_date,
-            "customer": None,
-            "transactions": [],
-            "total_obligations": 0,
-            "total_credits": 0,
-            "net_balance": 0
-        }
-    )
-
-@router.get("/reports/project-summary", response_class=HTMLResponse)
-async def project_summary_report(
-    request: Request,
-    project_id: Optional[int] = Query(None),
-    from_date: Optional[str] = Query(None),
-    to_date: Optional[str] = Query(None),
-    db: Session = Depends(get_db)
-):
-    projects = ProjectService.get_all(db)
-    return templates.TemplateResponse(
-        "reports/project_summary.html",
-        {
-            "request": request,
-            "active_page": "reports",
-            "projects": projects,
-            "project_id": project_id,
-            "from_date": from_date,
-            "to_date": to_date,
-            "project": None,
-            "member_count": 0,
-            "member_summaries": [],
-            "total_obligations": 0,
-            "total_credits": 0,
-            "total_overdue": 0
-        }
-    )
-
-@router.get("/reports/bank", response_class=HTMLResponse)
-async def bank_report(
-    request: Request,
-    account_id: Optional[int] = Query(None),
-    from_date: Optional[str] = Query(None),
-    to_date: Optional[str] = Query(None),
-    db: Session = Depends(get_db)
-):
-    from app.services.bank_account_service import BankAccountService
-    accounts = BankAccountService.get_all(db)
-    return templates.TemplateResponse(
-        "reports/bank_report.html",
-        {
-            "request": request,
-            "active_page": "reports",
-            "accounts": accounts,
-            "account_id": account_id,
-            "from_date": from_date,
-            "to_date": to_date,
-            "account": None,
-            "transactions": [],
-            "balance": 0,
-            "total_deposits": 0,
-            "total_withdrawals": 0,
-            "transaction_count": 0
-        }
-    )
 # ============================================================
 # حساب‌های بانکی
 # ============================================================
@@ -691,3 +718,69 @@ async def bank_account_create(
     )
     BankAccountService.create(db, data)
     return RedirectResponse("/pages/bank-accounts", status_code=303)
+
+@router.get("/transfers", response_class=HTMLResponse)
+async def transfer_create_form(
+    request: Request,
+    created: bool = Query(False),
+    db: Session = Depends(get_db),
+):
+    return templates.TemplateResponse(
+        "transfer_form.html",
+        {
+            "request": request,
+            "active_page": "transfers",
+            "bank_accounts": BankAccountService.get_all(db),
+            "created": created,
+        },
+    )
+
+@router.get("/units/{unit_id}/edit", response_class=HTMLResponse)
+async def unit_edit_form(request: Request, unit_id: int, db: Session = Depends(get_db)):
+    unit = UnitService.get_by_id(db, unit_id)
+    if not unit:
+        raise HTTPException(status_code=404, detail="واحد پیدا نشد")
+    return templates.TemplateResponse(
+        "unit_form.html",
+        {
+            "request": request,
+            "unit": unit,
+            "projects": ProjectService.get_all(db),
+        },
+    )
+
+@router.post("/units/{unit_id}/edit")
+async def unit_edit(
+    unit_id: int,
+    unit_code: str = Form(...),
+    building: str = Form(""),
+    floor: Optional[int] = Form(None),
+    unit_number: str = Form(...),
+    area: Optional[float] = Form(None),
+    price: Optional[int] = Form(None),
+    status: str = Form("AVAILABLE"),
+    db: Session = Depends(get_db),
+):
+    from app.schemas.unit import UnitUpdate
+
+    try:
+        data = UnitUpdate(
+            unit_code=unit_code,
+            building=building if building else None,
+            floor=floor,
+            unit_number=unit_number,
+            area=area,
+            price=price,
+            status=status,
+        )
+        if not UnitService.update(db, unit_id, data):
+            raise HTTPException(status_code=404, detail="واحد پیدا نشد")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return RedirectResponse("/pages/units", status_code=303)
+
+@router.post("/units/{unit_id}/delete")
+async def unit_delete(unit_id: int, db: Session = Depends(get_db)):
+    if not UnitService.delete(db, unit_id):
+        raise HTTPException(status_code=404, detail="واحد پیدا نشد")
+    return RedirectResponse("/pages/units", status_code=303)

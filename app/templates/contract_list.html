@@ -46,7 +46,10 @@
             </td>
             <td>
                 <a href="/pages/contracts/{{ contract.id }}/edit" class="btn btn-sm btn-primary">ویرایش</a>
-                <a href="/pages/contracts/{{ contract.id }}/delete" class="btn btn-sm btn-danger">حذف</a>
+                <button type="submit"
+                        formaction="/pages/contracts/{{ contract.id }}/delete"
+                        formmethod="post"
+                        class="btn btn-sm btn-danger">حذف</button>
             </td>
         </tr>
         {% endfor %}

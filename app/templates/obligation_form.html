@@ -8,7 +8,7 @@
 <div class="row">
     <div class="col-md-6 mb-3">
         <label class="form-label required">مشتری</label>
-        <select name="customer_id" class="form-select" required>
+        <select name="customer_id" class="form-select" required {% if obligation %}disabled{% endif %}>
             <option value="">انتخاب مشتری...</option>
             {% for customer in customers %}
             <option value="{{ customer.id }}" {% if obligation and obligation.customer_id == customer.id %}selected{% endif %}>
@@ -19,7 +19,7 @@
     </div>
     <div class="col-md-6 mb-3">
         <label class="form-label required">پروژه</label>
-        <select name="project_id" class="form-select" required>
+        <select name="project_id" class="form-select" required {% if obligation %}disabled{% endif %}>
             <option value="">انتخاب پروژه...</option>
             {% for project in projects %}
             <option value="{{ project.id }}" {% if obligation and obligation.project_id == project.id %}selected{% endif %}>
@@ -32,7 +32,7 @@
 <div class="row">
     <div class="col-md-6 mb-3">
         <label class="form-label required">نوع بدهی</label>
-        <select name="obligation_type" class="form-select" required>
+        <select name="obligation_type" class="form-select" required {% if obligation %}disabled{% endif %}>
             <option value="PROJECT_PLAN" {% if obligation and obligation.obligation_type == 'PROJECT_PLAN' %}selected{% endif %}>پلن پروژه</option>
             <option value="UNIT_DIFFERENCE" {% if obligation and obligation.obligation_type == 'UNIT_DIFFERENCE' %}selected{% endif %}>مابه‌التفاوت واحد</option>
             <option value="PENALTY" {% if obligation and obligation.obligation_type == 'PENALTY' %}selected{% endif %}>جریمه</option>
@@ -43,20 +43,23 @@
     <div class="col-md-6 mb-3">
         <label class="form-label required">مبلغ (ریال)</label>
         <input type="number" name="amount" class="form-control" required min="1000"
+               {% if obligation %}disabled{% endif %}
                value="{{ obligation.amount if obligation else '' }}">
     </div>
 </div>
 <div class="row">
-    <div class="col-md-6 mb-3">
+    <div class="{% if obligation %}col-md-6{% else %}col-12{% endif %} mb-3">
         <label class="form-label">تاریخ سررسید</label>
         <input type="text" name="due_date" class="form-control jalali-date-picker" placeholder="1404/05/03"
                value="{{ obligation.due_date|jalali if obligation else '' }}">
     </div>
+    {% if obligation %}
     <div class="col-md-6 mb-3">
-        <label class="form-label">مبلغ پرداخت‌شده</label>
-        <input type="number" name="paid_amount" class="form-control" min="0"
-               value="{{ obligation.paid_amount if obligation else '0' }}">
+        <label class="form-label">مانده بدهی (ریال)</label>
+        <input type="text" class="form-control"
+               value="{{ '{:,.0f}'.format(obligation.amount - obligation.paid_amount) }}" disabled>
     </div>
+    {% endif %}
 </div>
 <div class="mb-3">
     <label class="form-label">توضیحات</label>

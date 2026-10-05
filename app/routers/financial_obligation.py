@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from typing import Optional, List
+from app.core.auth import get_current_user
 from app.core.database import get_db
+from app.models.user import User
 from app.schemas.financial_obligation import FinancialObligationCreate, FinancialObligationUpdate, FinancialObligationResponse
 from app.services.financial_obligation_service import FinancialObligationService
 from app.services.customer_service import CustomerService
@@ -10,14 +12,25 @@ from app.services.project_service import ProjectService
 router = APIRouter(prefix="/api/v1/financial-obligations", tags=["Financial Obligations"])
 
 @router.post("/", response_model=FinancialObligationResponse, status_code=status.HTTP_201_CREATED)
-def create_obligation(data: FinancialObligationCreate, db: Session = Depends(get_db)):
+def create_obligation(
+    data: FinancialObligationCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     customer = CustomerService.get_by_id(db, data.customer_id)
     if not customer:
         raise HTTPException(status_code=404, detail="مشتری پیدا نشد")
     project = ProjectService.get_by_id(db, data.project_id)
     if not project:
         raise HTTPException(status_code=404, detail="پروژه پیدا نشد")
-    return FinancialObligationService.create(db, data)
+    try:
+        return FinancialObligationService.create(
+            db,
+            data,
+            posted_by=current_user.username,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 @router.get("/", response_model=List[FinancialObligationResponse])
 def get_obligations(
@@ -45,5 +58,8 @@ def update_obligation(obligation_id: int, data: FinancialObligationUpdate, db: S
 
 @router.delete("/{obligation_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_obligation(obligation_id: int, db: Session = Depends(get_db)):
-    if not FinancialObligationService.delete(db, obligation_id):
-        raise HTTPException(status_code=404, detail="بدهی پیدا نشد")
+    try:
+        if not FinancialObligationService.delete(db, obligation_id):
+            raise HTTPException(status_code=404, detail="بدهی پیدا نشد")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))

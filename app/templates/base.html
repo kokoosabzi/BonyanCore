@@ -297,6 +297,7 @@
             border-radius: var(--radius-sm);
             cursor: pointer;
             transition: var(--transition);
+            text-decoration: none;
         }
 
         .topbar .user-info:hover {
@@ -474,73 +475,57 @@
             font-size: 0.7rem;
         }
 
-        /* ============================================
-           RESPONSIVE
-           ============================================ */
-        .sidebar-toggle {
+        .desktop-only-notice {
             display: none;
-            background: none;
-            border: none;
-            font-size: 1.4rem;
-            color: var(--text-secondary);
-            padding: 4px 8px;
-            border-radius: var(--radius-sm);
         }
 
-        .sidebar-toggle:hover {
-            background: var(--bg-body);
-        }
-
-        .sidebar-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            right: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 1045;
-        }
-
-        @media (max-width: 992px) {
-            .sidebar {
-                right: calc(-1 * var(--sidebar-width));
+        @media (max-width: 1023px) {
+            body {
+                display: block;
+                background: #f4f6f8;
             }
-            .sidebar.open {
-                right: 0;
-            }
+            .sidebar,
             .main-content {
-                margin-right: 0;
+                display: none !important;
             }
-            .sidebar-toggle {
+            .desktop-only-notice {
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 32px;
+                text-align: center;
+            }
+            .desktop-only-notice__content {
+                max-width: 480px;
+            }
+            .desktop-only-notice i {
                 display: block;
+                margin-bottom: 18px;
+                color: #1f4b43;
+                font-size: 3rem;
             }
-            .sidebar-overlay.open {
-                display: block;
+            .desktop-only-notice h1 {
+                margin-bottom: 10px;
+                font-size: 1.4rem;
+                font-weight: 700;
             }
-            .topbar {
-                padding: 12px 16px;
-            }
-            .page-content {
-                padding: 16px;
-            }
-        }
-
-        @media (max-width: 576px) {
-            .topbar .page-title {
-                font-size: 0.85rem;
-            }
-            .topbar .user-info .user-name,
-            .topbar .user-info .user-role {
-                display: none;
-            }
-            .form-container {
-                padding: 16px;
+            .desktop-only-notice p {
+                margin: 0;
+                color: #64716d;
+                line-height: 1.9;
             }
         }
     </style>
 </head>
 <body>
+    <section class="desktop-only-notice" aria-labelledby="desktop-only-title">
+        <div class="desktop-only-notice__content">
+            <i class="bi bi-display" aria-hidden="true"></i>
+            <h1 id="desktop-only-title">نسخه دسکتاپ سامانه</h1>
+            <p>برای استفاده از بنیان‌کر، این صفحه را در رایانه و با عرض نمایش حداقل ۱۰۲۴ پیکسل باز کنید.</p>
+        </div>
+    </section>
 
     <!-- ============================================
     SIDEBAR
@@ -645,6 +630,7 @@
         <div class="sub-menu">
             <a href="/pages/bank-accounts" class="nav-item">💳 لیست حساب‌ها</a>
             <a href="/pages/bank-accounts/create" class="nav-item">➕ حساب جدید</a>
+            <a href="/pages/transfers" class="nav-item">↔ انتقال بین حساب‌ها</a>
         </div>
 
         <a href="/api/v1/cheque-books/list" class="nav-item">
@@ -672,18 +658,17 @@
             <i class="bi bi-person-badge"></i> بدهکاران
         </a>
 
+        {% if request.state.user.is_superuser %}
         <!-- مدیریت -->
         <div class="nav-section">مدیریت سیستم</div>
         <a href="/auth/users" class="nav-item">
             <i class="bi bi-gear"></i> مدیریت کاربران
         </a>
-        <a href="/auth/logout" class="nav-item" style="color: rgba(255,255,255,0.3);">
-            <i class="bi bi-box-arrow-left"></i> خروج
+        <a href="/auth/audit-logs" class="nav-item">
+            <i class="bi bi-journal-text"></i> لاگ تغییرات
         </a>
+        {% endif %}
     </nav>
-
-    <!-- اوورلی (موبایل) -->
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
     <!-- ============================================
     محتوای اصلی
@@ -693,9 +678,6 @@
         <!-- تاپبار -->
         <header class="topbar">
             <div class="d-flex align-items-center gap-3">
-                <button class="sidebar-toggle" id="sidebarToggle">
-                    <i class="bi bi-list"></i>
-                </button>
                 <span class="page-title">
                     <i class="bi bi-{% block page_icon %}house{% endblock %}"></i>
                     {% block page_title %}داشبورد{% endblock %}
@@ -710,13 +692,26 @@
                 <button class="btn-icon" title="راهنما" onclick="window.location.href='/intro'">
                     <i class="bi bi-question-circle"></i>
                 </button>
-                <div class="user-info">
-                    <div class="avatar">مد</div>
+                <a class="user-info" href="/auth/profile" title="پروفایل کاربری">
+                    <div class="avatar">{{ request.state.user.full_name[:2] }}</div>
                     <div>
-                        <div class="user-name">مدیر سیستم</div>
-                        <div class="user-role">ادمین</div>
+                        <div class="user-name">{{ request.state.user.full_name }}</div>
+                        <div class="user-role">
+                            {% if request.state.user.is_superuser %}
+                            مدیر سیستم
+                            {% elif request.state.user.role %}
+                            {{ request.state.user.role.name }}
+                            {% else %}
+                            کاربر
+                            {% endif %}
+                        </div>
                     </div>
-                </div>
+                </a>
+                <form method="post" action="/auth/logout" class="m-0">
+                    <button type="submit" class="btn-icon" title="خروج">
+                        <i class="bi bi-box-arrow-right"></i>
+                    </button>
+                </form>
             </div>
         </header>
 
@@ -736,18 +731,7 @@
     ============================================ -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // تاگل سایدبار (موبایل)
         const sidebar = document.getElementById('sidebar');
-        const overlay = document.getElementById('sidebarOverlay');
-        const toggleBtn = document.getElementById('sidebarToggle');
-
-        function toggleSidebar() {
-            sidebar.classList.toggle('open');
-            overlay.classList.toggle('open');
-        }
-
-        if (toggleBtn) toggleBtn.addEventListener('click', toggleSidebar);
-        if (overlay) overlay.addEventListener('click', toggleSidebar);
 
         // تاگل زیرمنوها
         document.querySelectorAll('[data-toggle="submenu"]').forEach(function(item) {
@@ -760,17 +744,6 @@
                     if (arrow) arrow.classList.toggle('open');
                 }
             });
-        });
-
-        // بستن سایدبار در موبایل با کلیک خارج
-        document.addEventListener('click', function(e) {
-            if (window.innerWidth <= 992) {
-                const isSidebar = sidebar.contains(e.target);
-                const isToggle = toggleBtn && toggleBtn.contains(e.target);
-                if (!isSidebar && !isToggle && sidebar.classList.contains('open')) {
-                    toggleSidebar();
-                }
-            }
         });
 
         // یکسان‌سازی ورودی‌های تاریخ جلالی: اعداد فارسی/عربی و جداکننده‌ها به قالب 1404/05/03 تبدیل می‌شوند.

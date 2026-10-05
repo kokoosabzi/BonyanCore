@@ -7,11 +7,15 @@
 <div class="form-container" style="max-width: 700px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="mb-0">🔄 انتقال بین حساب‌ها</h4>
-        <a href="/pages/transfers" class="btn btn-secondary btn-sm">
+        <a href="/pages/bank-accounts" class="btn btn-secondary btn-sm">
             <i class="bi bi-arrow-right"></i> بازگشت
         </a>
     </div>
     <hr>
+
+    {% if created %}
+    <div class="alert alert-success">انتقال با موفقیت ثبت شد.</div>
+    {% endif %}
 
     <form method="post" action="/api/v1/transfers/">
         <div class="row">
@@ -50,7 +54,7 @@
             <input type="text" name="description" class="form-control" placeholder="شرح انتقال">
         </div>
         <div class="d-flex justify-content-between mt-4">
-            <a href="/pages/transfers" class="btn btn-secondary">لغو</a>
+            <a href="/pages/bank-accounts" class="btn btn-secondary">لغو</a>
             <button type="submit" class="btn btn-primary">
                 <i class="bi bi-check-lg"></i> ثبت انتقال
             </button>

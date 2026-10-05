@@ -13,12 +13,13 @@ from app.models.account import Account, AccountType
 from app.models.bank import Bank
 from app.models.bank_account import BankAccount
 from app.models.bank_statement import BankStatement, StatementType
-from app.models.journal_entry import JournalEntry, JournalStatus
+from app.models.journal_entry import JournalEntry, JournalStatus, JournalEntryType
 from app.models.journal_line import JournalLine, DebitCredit
 from app.models.analytic_account import AnalyticAccount
 from app.models.audit_log import AuditLog
 from app.models.document_sequence import DocumentSequence
 from app.models.receipt import Receipt, PaymentMethod, ReceiptStatus
+from app.models.receipt_allocation import ReceiptAllocation
 from app.models.payment import Payment, PaymentStatus
 from app.models.transfer import Transfer, TransferStatus
 from app.models.user import User
