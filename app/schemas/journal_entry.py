@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Optional, List
 from datetime import date, datetime
 from enum import Enum
-from app.utils.jalali import normalize_date_text, parse_jalali_date, to_jalali
+from app.utils.jalali import normalize_date_text, parse_jalali_date
 
 class JournalStatus(str, Enum):
     DRAFT = "DRAFT"
@@ -48,6 +48,7 @@ class JournalEntryBase(BaseModel):
     @field_validator('journal_date')
     @classmethod
     def validate_jalali_date(cls, v: str) -> str:
+        """Validate and normalize Jalali date text before service conversion."""
         parse_jalali_date(v)
         normalized = normalize_date_text(v)
         year, month, day = normalized.split('-')
@@ -85,13 +86,6 @@ class JournalEntryResponse(JournalEntryBase):
     created_at: datetime
     updated_at: datetime
     lines: List[JournalLineResponse] = Field(default_factory=list)
-
-    @field_validator('journal_date', mode='before')
-    @classmethod
-    def serialize_gregorian_date(cls, v):
-        if isinstance(v, (date, datetime)):
-            return to_jalali(v)
-        return v
 
     class Config:
         from_attributes = True

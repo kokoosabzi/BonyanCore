@@ -5,6 +5,12 @@
 {% block cancel_url %}/pages{% endblock %}
 
 {% block form_body %}
+{% if delete_success %}
+<div class="alert alert-success" role="alert">
+    مشتری با موفقیت حذف شد.
+</div>
+{% endif %}
+
 <div class="d-flex justify-content-between mb-3">
     <a href="/pages/customers/create" class="btn btn-success">➕ مشتری جدید</a>
 </div>
@@ -36,7 +42,9 @@
             </td>
             <td>
                 <a href="/pages/customers/{{ customer.id }}/edit" class="btn btn-sm btn-primary">ویرایش</a>
-                <a href="/pages/customers/{{ customer.id }}/delete" class="btn btn-sm btn-danger">حذف</a>
+                <button type="submit" formaction="/pages/customers/{{ customer.id }}/delete" formmethod="post"
+                        class="btn btn-sm btn-danger"
+                        onclick="return confirm('آیا از حذف این مشتری اطمینان دارید؟')">حذف</button>
             </td>
         </tr>
         {% endfor %}

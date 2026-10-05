@@ -30,13 +30,6 @@ def get_cheque_books(
 ):
     return ChequeBookService.get_all(db, skip, limit)
 
-@router.get("/{book_id}", response_model=ChequeBookResponse)
-def get_cheque_book(book_id: int, db: Session = Depends(get_db)):
-    book = ChequeBookService.get_by_id(db, book_id)
-    if not book:
-        raise HTTPException(status_code=404, detail="دسته چک پیدا نشد")
-    return book
-
 @router.put("/{book_id}", response_model=ChequeBookResponse)
 def update_cheque_book(book_id: int, data: ChequeBookUpdate, db: Session = Depends(get_db)):
     try:
@@ -97,6 +90,13 @@ async def cheque_book_list(request: Request, db: Session = Depends(get_db)):
             "books": books
         }
     )
+
+@router.get("/{book_id}", response_model=ChequeBookResponse)
+def get_cheque_book(book_id: int, db: Session = Depends(get_db)):
+    book = ChequeBookService.get_by_id(db, book_id)
+    if not book:
+        raise HTTPException(status_code=404, detail="دسته چک پیدا نشد")
+    return book
 
 @router.get("/{book_id}/edit", response_class=HTMLResponse)
 async def cheque_book_edit_form(request: Request, book_id: int, db: Session = Depends(get_db)):

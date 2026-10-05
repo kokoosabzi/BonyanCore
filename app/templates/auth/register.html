@@ -26,9 +26,36 @@
             font-weight: bold;
             margin-bottom: 30px;
         }
+        .desktop-only-notice {
+            display: none;
+        }
+        @media (max-width: 1023px) {
+            .register-container {
+                display: none;
+            }
+            .desktop-only-notice {
+                display: block;
+                max-width: 480px;
+                padding: 32px;
+                color: #24332f;
+                text-align: center;
+            }
+            .desktop-only-notice h1 {
+                font-size: 1.4rem;
+                font-weight: 700;
+            }
+            .desktop-only-notice p {
+                color: #64716d;
+                line-height: 1.9;
+            }
+        }
     </style>
 </head>
 <body>
+    <section class="desktop-only-notice" aria-labelledby="desktop-only-title">
+        <h1 id="desktop-only-title">نسخه دسکتاپ سامانه</h1>
+        <p>برای استفاده از بنیان‌کر، این صفحه را در رایانه و با عرض نمایش حداقل ۱۰۲۴ پیکسل باز کنید.</p>
+    </section>
     <div class="register-container">
         <h3 class="text-center">📝 ثبت نام</h3>
 
@@ -46,16 +73,12 @@
                 <input type="text" name="full_name" class="form-control" required>
             </div>
             <div class="mb-3">
-                <label class="form-label">ایمیل</label>
-                <input type="email" name="email" class="form-control">
-            </div>
-            <div class="mb-3">
                 <label class="form-label">تلفن</label>
                 <input type="text" name="phone" class="form-control">
             </div>
             <div class="mb-3">
                 <label class="form-label">رمز عبور</label>
-                <input type="password" name="password" class="form-control" required minlength="6">
+                <input type="password" name="password" class="form-control" required minlength="6" maxlength="72">
             </div>
             <div class="mb-3">
                 <label class="form-label">نقش</label>
@@ -71,7 +94,7 @@
 
         <div class="text-center mt-3">
             <small class="text-muted">
-                قبلاً ثبت نام کرده‌اید؟ <a href="/auth/login">ورود</a>
+                <a href="/auth/users">بازگشت به فهرست کاربران</a>
             </small>
         </div>
     </div>

@@ -10,15 +10,13 @@ class DocumentSequenceService:
         sequence = db.query(DocumentSequence).filter(
             DocumentSequence.prefix == prefix,
             DocumentSequence.year == year
-        ).first()
+        ).with_for_update().first()
         if not sequence:
             sequence = DocumentSequence(prefix=prefix, year=year, current_number=0)
             db.add(sequence)
-            db.commit()
-            db.refresh(sequence)
+            db.flush()
         sequence.current_number += 1
-        db.commit()
-        db.refresh(sequence)
+        db.flush()
         return f"{prefix}-{year}-{sequence.current_number:06d}"
 
     @staticmethod
@@ -44,3 +42,7 @@ class DocumentSequenceService:
     @staticmethod
     def get_next_journal_number(db: Session) -> str:
         return DocumentSequenceService.get_next_number(db, "JV")
+
+    @staticmethod
+    def get_next_transfer_number(db: Session) -> str:
+        return DocumentSequenceService.get_next_number(db, "TRF")
