@@ -416,6 +416,31 @@ class ReportService:
         matched = []
         system_only = []
 
+        # تطبیق‌های دستی و قطعی بر تطبیق خودکار اولویت دارند.
+        system_by_key = {(tx["type"], tx["id"]): tx for tx in system_transactions}
+        for bank_tx in bank_transactions:
+            statement = next((s for s in statements if s.id == bank_tx["id"]), None)
+            if not statement or not statement.is_reconciled:
+                continue
+            target_id = statement.receipt_id if statement.receipt_id is not None else statement.payment_id
+            target_type = "DEPOSIT" if statement.receipt_id is not None else "WITHDRAWAL"
+            system_tx = system_by_key.get((target_type, target_id))
+            if not system_tx:
+                continue
+            used_bank_ids.add(bank_tx["id"])
+            matched.append({
+                "date": bank_tx["date"],
+                "description": bank_tx["description"],
+                "amount": bank_tx["amount"],
+                "type": bank_tx["type"],
+                "system_document_no": system_tx["document_no"],
+                "bank_reference_no": bank_tx["reference_no"],
+                "status": "تطبیق دستی",
+                "manual": True,
+                "bank_statement_id": bank_tx["id"],
+                "system_id": target_id,
+            })
+
         for system_tx in system_transactions:
             candidates = [
                 bank_tx for bank_tx in bank_transactions
