@@ -230,57 +230,206 @@ class ReportService:
         account_id: int,
         statement_date: Optional[date] = None
     ) -> Dict[str, Any]:
-        """گزارش مغایرت بانکی"""
-        account = db.query(BankAccount).filter(BankAccount.id == account_id).first()
+        """گزارش کامل مغایرت بانکی بر اساس تطبیق تراکنش‌های بانک و سیستم."""
+        account = db.query(BankAccount).filter(
+            BankAccount.id == account_id,
+            BankAccount.is_deleted.is_(False),
+        ).first()
         if not account:
             return {"error": "حساب بانکی پیدا نشد"}
 
-        statements = db.query(BankStatement).filter(
+        # اگر تاریخ مشخص شده باشد، مانده بانک در همان تاریخ/آخرین رکورد قبل از آن
+        # مبنای گزارش است. در غیر این صورت آخرین صورت‌حساب ثبت‌شده مبناست.
+        statement_query = db.query(BankStatement).filter(
             BankStatement.bank_account_id == account_id,
-            BankStatement.is_deleted == False
+            BankStatement.is_deleted.is_(False),
         )
         if statement_date:
-            statements = statements.filter(BankStatement.statement_date == statement_date)
-        statements = statements.all()
+            statement_query = statement_query.filter(
+                BankStatement.statement_date <= statement_date
+            )
 
+        statements = statement_query.order_by(
+            BankStatement.statement_date.asc(),
+            BankStatement.id.asc(),
+        ).all()
+
+        if not statements:
+            return {
+                "error": "برای این حساب صورت‌حساب بانکی ثبت نشده است",
+                "account": account,
+                "system_balance": 0,
+                "bank_balance": 0,
+                "difference": 0,
+                "unrecorded": [],
+                "system_only": [],
+                "matched": [],
+                "statement_count": 0,
+            }
+
+        effective_date = statement_date or statements[-1].statement_date
+        latest_statement = statements[-1]
+
+        # فقط تراکنش‌های تأییدشده تا تاریخ صورت‌حساب وارد محاسبه سیستم می‌شوند.
         receipts = db.query(Receipt).filter(
             Receipt.bank_account_id == account_id,
-            Receipt.is_deleted == False,
-            Receipt.status == "CONFIRMED"
-        ).all()
+            Receipt.is_deleted.is_(False),
+            Receipt.status == "CONFIRMED",
+            Receipt.receipt_date <= effective_date,
+        ).order_by(Receipt.receipt_date.asc(), Receipt.id.asc()).all()
 
         payments = db.query(Payment).filter(
             Payment.bank_account_id == account_id,
-            Payment.is_deleted == False,
-            Payment.status == "CONFIRMED"
-        ).all()
+            Payment.is_deleted.is_(False),
+            Payment.status == "CONFIRMED",
+            Payment.payment_date <= effective_date,
+        ).order_by(Payment.payment_date.asc(), Payment.id.asc()).all()
 
-        system_balance = 0
+        # تراکنش‌های بانکی تا تاریخ مبنا.
+        bank_transactions = [
+            {
+                "id": s.id,
+                "date": s.statement_date,
+                "description": s.description or (
+                    "واریز بانکی" if s.statement_type.value == "DEPOSIT" else "برداشت بانکی"
+                ),
+                "amount": s.amount,
+                "type": s.statement_type.value,
+                "reference_no": s.reference_no,
+                "balance": s.balance,
+            }
+            for s in statements
+        ]
+
+        # تطبیق قطعی/نزدیک: نوع + مبلغ + تاریخ؛ در صورت وجود شماره مرجع،
+        # شماره مرجع نیز برای اولویت‌بندی استفاده می‌شود. هر رکورد بانک فقط
+        # یک بار می‌تواند با یک رکورد سیستم تطبیق داده شود.
+        system_transactions = []
         for r in receipts:
-            system_balance += r.amount
+            system_transactions.append({
+                "id": r.id,
+                "date": r.receipt_date,
+                "description": r.description or f"دریافت {r.receipt_no}",
+                "amount": r.amount,
+                "type": "DEPOSIT",
+                "reference_no": r.reference_no,
+                "document_no": r.receipt_no,
+            })
         for p in payments:
-            system_balance -= p.amount
+            system_transactions.append({
+                "id": p.id,
+                "date": p.payment_date,
+                "description": p.description or f"پرداخت {p.payment_no}",
+                "amount": p.amount,
+                "type": "WITHDRAWAL",
+                "reference_no": None,
+                "document_no": p.payment_no,
+            })
 
-        bank_balance = 0
-        if statements:
-            bank_balance = statements[-1].balance if statements else 0
+        system_transactions.sort(key=lambda x: (x["date"], x["id"]))
 
-        unrecorded = []
-        for r in receipts:
-            if r.bank_account_id == account_id:
-                unrecorded.append({
-                    "date": r.receipt_date,
-                    "description": r.description or "واریز ثبت شده",
-                    "amount": r.amount,
-                    "type": "DEPOSIT",
-                    "status": "در سیستم ثبت شده"
+        used_bank_ids = set()
+        matched = []
+        system_only = []
+
+        for system_tx in system_transactions:
+            candidates = [
+                bank_tx for bank_tx in bank_transactions
+                if bank_tx["id"] not in used_bank_ids
+                and bank_tx["date"] == system_tx["date"]
+                and bank_tx["amount"] == system_tx["amount"]
+                and bank_tx["type"] == system_tx["type"]
+            ]
+
+            if system_tx["reference_no"]:
+                reference_matches = [
+                    item for item in candidates
+                    if item["reference_no"] == system_tx["reference_no"]
+                ]
+                if reference_matches:
+                    candidates = reference_matches
+
+            if candidates:
+                bank_tx = candidates[0]
+                used_bank_ids.add(bank_tx["id"])
+                matched.append({
+                    "date": system_tx["date"],
+                    "description": system_tx["description"],
+                    "amount": system_tx["amount"],
+                    "type": system_tx["type"],
+                    "system_document_no": system_tx["document_no"],
+                    "bank_reference_no": bank_tx["reference_no"],
+                    "status": "مطابقت دارد",
                 })
+            else:
+                system_only.append({
+                    **system_tx,
+                    "status": "در سیستم ثبت شده ولی در بانک یافت نشد",
+                })
+
+        bank_only = [
+            {
+                **bank_tx,
+                "status": "در بانک ثبت شده ولی در سیستم یافت نشد",
+            }
+            for bank_tx in bank_transactions
+            if bank_tx["id"] not in used_bank_ids
+        ]
+
+        # مانده صورت‌حساب بانک، مانده واقعی اعلام‌شده توسط بانک است.
+        bank_balance = latest_statement.balance
+        bank_balance_known = bank_balance is not None
+
+        # برای مقایسه مانده سیستم و بانک، از اولین مانده شناخته‌شده بانک
+        # به‌عنوان مانده افتتاحیه مبنا استفاده می‌کنیم. این کار مانده صفر
+        # مصنوعی قبلی را حذف می‌کند و اختلاف را بر مبنای یک نقطه مشترک می‌سنجد.
+        baseline_statement = next(
+            (s for s in statements if s.balance is not None),
+            None,
+        )
+        opening_balance = None
+        system_balance = None
+
+        if baseline_statement is not None:
+            signed_baseline = (
+                baseline_statement.amount
+                if baseline_statement.statement_type.value == "DEPOSIT"
+                else -baseline_statement.amount
+            )
+            opening_balance = baseline_statement.balance - signed_baseline
+
+            system_net_after_baseline = 0
+            for tx in system_transactions:
+                if tx["date"] >= baseline_statement.statement_date:
+                    system_net_after_baseline += (
+                        tx["amount"]
+                        if tx["type"] == "DEPOSIT"
+                        else -tx["amount"]
+                    )
+            system_balance = opening_balance + system_net_after_baseline
+
+        difference = (
+            system_balance - bank_balance
+            if system_balance is not None and bank_balance_known
+            else None
+        )
 
         return {
             "account": account,
+            "statement_date": effective_date,
             "system_balance": system_balance,
             "bank_balance": bank_balance,
-            "difference": system_balance - bank_balance,
-            "unrecorded": unrecorded,
-            "statement_count": len(statements)
+            "difference": difference,
+            "opening_balance": opening_balance,
+            "bank_balance_known": bank_balance_known,
+            "unrecorded": bank_only,
+            "bank_only": bank_only,
+            "system_only": system_only,
+            "matched": matched,
+            "statement_count": len(statements),
+            "bank_transaction_count": len(bank_transactions),
+            "system_transaction_count": len(system_transactions),
+            "matched_count": len(matched),
+            "bank_only_count": len(bank_only),
+            "system_only_count": len(system_only),
         }
