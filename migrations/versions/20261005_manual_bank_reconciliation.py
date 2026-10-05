@@ -1,14 +1,14 @@
 """manual bank reconciliation links
 
 Revision ID: 20261005_manual_bank_reconciliation
-Revises:
+Revises: 3554422ca1ec
 Create Date: 2026-10-05
 """
 from alembic import op
 import sqlalchemy as sa
 
 revision = "20261005_manual_bank_reconciliation"
-down_revision = None
+down_revision = "3554422ca1ec"
 branch_labels = None
 depends_on = None
 
@@ -27,3 +27,4 @@ def downgrade():
     op.drop_constraint("fk_bank_statements_receipt_id", "bank_statements", type_="foreignkey")
     op.drop_column("bank_statements", "payment_id")
     op.drop_column("bank_statements", "receipt_id")
+}
