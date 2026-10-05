@@ -30,6 +30,7 @@ from app.routers import (
     cheque_book_router,
     transfer_router,
     receipt_router,
+    bank_statement_router,
 )
 from app.core.templates import create_templates
 from app.services.bootstrap_service import BootstrapService
@@ -163,6 +164,7 @@ app.include_router(journal_entry_router)
 app.include_router(cheque_book_router)
 app.include_router(transfer_router)
 app.include_router(receipt_router)
+app.include_router(bank_statement_router)
 app.include_router(auth_router)
 app.include_router(reports_router)
 # Page Routes
