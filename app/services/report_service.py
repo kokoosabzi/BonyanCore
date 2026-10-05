@@ -225,6 +225,90 @@ class ReportService:
         }
 
     @staticmethod
+    def reconcile_bank_statement(
+        db: Session,
+        statement_id: int,
+        receipt_id: Optional[int] = None,
+        payment_id: Optional[int] = None,
+    ) -> BankStatement:
+        """ثبت تطبیق دستی و قطعی یک رکورد بانکی با سند سیستم."""
+        if (receipt_id is None) == (payment_id is None):
+            raise ValueError("دقیقاً یکی از receipt_id یا payment_id باید مشخص شود")
+
+        statement = db.query(BankStatement).filter(
+            BankStatement.id == statement_id,
+            BankStatement.is_deleted.is_(False),
+        ).first()
+        if not statement:
+            raise ValueError("رکورد صورت‌حساب بانکی پیدا نشد")
+        if statement.is_reconciled:
+            raise ValueError("این رکورد بانکی قبلاً تطبیق داده شده است")
+
+        if receipt_id is not None:
+            receipt = db.query(Receipt).filter(
+                Receipt.id == receipt_id,
+                Receipt.is_deleted.is_(False),
+                Receipt.status == "CONFIRMED",
+            ).first()
+            if not receipt:
+                raise ValueError("دریافت تأییدشده پیدا نشد")
+            if receipt.bank_account_id != statement.bank_account_id:
+                raise ValueError("حساب بانکی دریافت با صورت‌حساب یکسان نیست")
+            if receipt.amount != statement.amount or receipt.receipt_date != statement.statement_date:
+                raise ValueError("مبلغ و تاریخ دریافت با رکورد بانکی یکسان نیست")
+            if statement.statement_type.value != "DEPOSIT":
+                raise ValueError("رکورد بانکی برداشت است و با دریافت قابل تطبیق نیست")
+            if db.query(BankStatement).filter(
+                BankStatement.receipt_id == receipt.id,
+                BankStatement.is_deleted.is_(False),
+            ).first():
+                raise ValueError("این دریافت قبلاً با یک رکورد بانکی تطبیق داده شده است")
+            statement.receipt_id = receipt.id
+            statement.payment_id = None
+        else:
+            payment = db.query(Payment).filter(
+                Payment.id == payment_id,
+                Payment.is_deleted.is_(False),
+                Payment.status == "CONFIRMED",
+            ).first()
+            if not payment:
+                raise ValueError("پرداخت تأییدشده پیدا نشد")
+            if payment.bank_account_id != statement.bank_account_id:
+                raise ValueError("حساب بانکی پرداخت با صورت‌حساب یکسان نیست")
+            if payment.amount != statement.amount or payment.payment_date != statement.statement_date:
+                raise ValueError("مبلغ و تاریخ پرداخت با رکورد بانکی یکسان نیست")
+            if statement.statement_type.value != "WITHDRAWAL":
+                raise ValueError("رکورد بانکی واریز است و با پرداخت قابل تطبیق نیست")
+            if db.query(BankStatement).filter(
+                BankStatement.payment_id == payment.id,
+                BankStatement.is_deleted.is_(False),
+            ).first():
+                raise ValueError("این پرداخت قبلاً با یک رکورد بانکی تطبیق داده شده است")
+            statement.payment_id = payment.id
+            statement.receipt_id = None
+
+        statement.is_reconciled = True
+        db.commit()
+        db.refresh(statement)
+        return statement
+
+    @staticmethod
+    def unreconcile_bank_statement(db: Session, statement_id: int) -> BankStatement:
+        """لغو تطبیق دستی رکورد صورت‌حساب."""
+        statement = db.query(BankStatement).filter(
+            BankStatement.id == statement_id,
+            BankStatement.is_deleted.is_(False),
+        ).first()
+        if not statement:
+            raise ValueError("رکورد صورت‌حساب بانکی پیدا نشد")
+        statement.receipt_id = None
+        statement.payment_id = None
+        statement.is_reconciled = False
+        db.commit()
+        db.refresh(statement)
+        return statement
+
+    @staticmethod
     def get_bank_reconciliation(
         db: Session,
         account_id: int,
@@ -336,6 +420,7 @@ class ReportService:
             candidates = [
                 bank_tx for bank_tx in bank_transactions
                 if bank_tx["id"] not in used_bank_ids
+                and not next((s.is_reconciled for s in statements if s.id == bank_tx["id"]), False)
                 and bank_tx["date"] == system_tx["date"]
                 and bank_tx["amount"] == system_tx["amount"]
                 and bank_tx["type"] == system_tx["type"]
@@ -360,6 +445,9 @@ class ReportService:
                     "system_document_no": system_tx["document_no"],
                     "bank_reference_no": bank_tx["reference_no"],
                     "status": "مطابقت دارد",
+                    "manual": False,
+                    "bank_statement_id": bank_tx["id"],
+                    "system_id": system_tx["id"],
                 })
             else:
                 system_only.append({
