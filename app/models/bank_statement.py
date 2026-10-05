@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, BigInteger, String, Date, Boolean, Text, Float, Numeric, Enum, ForeignKey, JSON
+from sqlalchemy import Column, Integer, BigInteger, String, Date, Boolean, Text, Float, Numeric, Enum, ForeignKey, JSON, UniqueConstraint
 from app.models.base import BaseModel
 import enum
 
@@ -18,3 +18,11 @@ class BankStatement(BaseModel):
     reference_no = Column(String(50), nullable=True)  # شماره مرجع بانکی
     is_reconciled = Column(Boolean, default=False)
     import_batch_id = Column(String(50), nullable=True)  # شناسه دسته Import
+
+# اتصال قطعی رکورد صورت‌حساب به سند سیستم پس از تأیید دستی.
+BankStatement.receipt_id = Column(BigInteger, ForeignKey("receipts.id"), nullable=True)
+BankStatement.payment_id = Column(BigInteger, ForeignKey("payments.id"), nullable=True)
+BankStatement.__table_args__ = (
+    UniqueConstraint("receipt_id", name="uq_bank_statement_receipt"),
+    UniqueConstraint("payment_id", name="uq_bank_statement_payment"),
+)
