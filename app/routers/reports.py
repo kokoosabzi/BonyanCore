@@ -76,7 +76,6 @@ async def customer_statement_excel(
     if "error" in report:
         raise HTTPException(status_code=404, detail=report["error"])
 
-    # ایجاد DataFrame
     data = []
     for t in report["transactions"]:
         data.append({
@@ -242,7 +241,11 @@ async def bank_reconciliation_page(
     report_data = {}
 
     if account_id:
-        report = ReportService.get_bank_reconciliation(db, account_id)
+        report = ReportService.get_bank_reconciliation(
+            db,
+            account_id,
+            parse_jalali_date(statement_date),
+        )
         if "error" not in report:
             report_data = report
 
