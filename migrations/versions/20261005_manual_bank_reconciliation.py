@@ -27,4 +27,3 @@ def downgrade():
     op.drop_constraint("fk_bank_statements_receipt_id", "bank_statements", type_="foreignkey")
     op.drop_column("bank_statements", "payment_id")
     op.drop_column("bank_statements", "receipt_id")
-}
