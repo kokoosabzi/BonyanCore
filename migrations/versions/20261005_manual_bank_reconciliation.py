@@ -1,13 +1,13 @@
 """manual bank reconciliation links
 
-Revision ID: 20261005_manual_bank_reconciliation
+Revision ID: 20261005_bank_reconciliation
 Revises: 3554422ca1ec
 Create Date: 2026-10-05
 """
 from alembic import op
 import sqlalchemy as sa
 
-revision = "20261005_manual_bank_reconciliation"
+revision = "20261005_bank_reconciliation"
 down_revision = "3554422ca1ec"
 branch_labels = None
 depends_on = None
