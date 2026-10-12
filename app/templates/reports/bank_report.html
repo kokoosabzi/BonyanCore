@@ -48,6 +48,10 @@
             </div>
         </form>
 
+        {% if date_error %}
+        <div class="alert alert-danger" role="alert">{{ date_error }}</div>
+        {% endif %}
+
         {% if account %}
         <div class="row mb-4">
             <div class="col-md-3"><strong>شماره حساب:</strong> {{ account.account_no }}</div>
