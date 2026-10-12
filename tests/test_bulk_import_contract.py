@@ -19,3 +19,18 @@ def test_bank_statement_import_rejects_ambiguous_account_numbers():
     assert "matching_accounts" in source
     assert "len(matching_accounts) > 1" in source
     assert "چند حساب بانکی مشترک است" in source
+
+
+def test_bulk_import_upload_passes_selected_calendar_to_excel_parser():
+    from app.routers.bulk_import import upload_excel
+    from pathlib import Path
+
+    import inspect
+
+    source = inspect.getsource(upload_excel)
+    template = Path("app/templates/bulk_import.html").read_text(encoding="utf-8")
+
+    assert 'date_calendar: str = Form("jalali")' in source
+    assert "date_calendar=date_calendar" in source
+    assert 'name="date_calendar"' in template
+    assert 'value="gregorian"' in template
