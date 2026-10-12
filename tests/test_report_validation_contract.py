@@ -39,3 +39,8 @@ def test_customer_statement_uses_full_obligation_amount_as_debit():
     source = inspect.getsource(ReportService.get_customer_statement)
     assert '"debit": obligation.amount,' in source
     assert '"debit": obligation.amount - (obligation.paid_amount or 0),' not in source
+
+def test_project_summary_uses_full_obligations_and_approved_credits():
+    source = inspect.getsource(ReportService.get_project_financial_summary)
+    assert "total_obligation = sum(o.amount for o in obligations)" in source
+    assert "FinancialCredit.status == CreditStatus.APPROVED" in source
