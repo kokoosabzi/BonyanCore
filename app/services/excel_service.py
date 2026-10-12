@@ -117,9 +117,12 @@ class ExcelService:
                 value = row[persian_col]
                 if english_col == "amount":
                     try:
-                        value = int(float(str(value).replace(",", "")))
+                        numeric_amount = float(str(value).replace(",", "").strip())
+                        if not numeric_amount.is_integer():
+                            raise ValueError("fractional amount")
+                        value = int(numeric_amount)
                     except (TypeError, ValueError):
-                        row_errors.append(f"ردیف {row_number}: مبلغ نامعتبر است")
+                        row_errors.append(f"ردیف {row_number}: مبلغ باید عدد صحیح و معتبر باشد")
                         value = None
                 elif english_col == "date":
                     if isinstance(value, pd.Timestamp):
