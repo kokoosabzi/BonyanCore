@@ -24,6 +24,7 @@
                         <option value="DEBIT">بدهکار گروهی</option>
                         <option value="CREDIT">بستانکار گروهی</option>
                         <option value="MEMBER">اعضای پروژه</option>
+                        <option value="BANK_STATEMENT">صورت‌حساب بانکی</option>
                     </select>
                 </div>
                 <div class="col-md-4 mb-3">
@@ -129,6 +130,11 @@
             downloadBtn.disabled = false;
             downloadBtn.onclick = function() {
                 window.location.href = '/bulk-import/template/MEMBER';
+            };
+        } else if (value === 'BANK_STATEMENT') {
+            downloadBtn.disabled = false;
+            downloadBtn.onclick = function() {
+                window.location.href = '/bulk-import/template/BANK_STATEMENT';
             };
         } else {
             downloadBtn.disabled = true;
