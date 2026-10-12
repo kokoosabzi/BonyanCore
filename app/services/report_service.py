@@ -10,8 +10,23 @@ from app.models import (
 )
 from app.services.financial_obligation_service import FinancialObligationService
 from app.services.financial_credit_service import FinancialCreditService
+from app.models.financial_obligation import ObligationStatus
+from app.models.financial_credit import CreditStatus
+from app.models.receipt import ReceiptStatus
+from app.models.payment import PaymentStatus
 
 class ReportService:
+    @staticmethod
+    def _validate_date_range(
+        from_date: Optional[date], to_date: Optional[date]
+    ) -> None:
+        """Validate report boundaries before they are used in a financial query."""
+        for value in (from_date, to_date):
+            if value is not None and not isinstance(value, date):
+                raise ValueError("تاریخ فیلتر گزارش معتبر نیست")
+        if from_date and to_date and from_date > to_date:
+            raise ValueError("تاریخ شروع نمی‌تواند بعد از تاریخ پایان باشد")
+
     @staticmethod
     def get_customer_statement(
         db: Session,
@@ -19,75 +34,92 @@ class ReportService:
         from_date: Optional[date] = None,
         to_date: Optional[date] = None
     ) -> Dict[str, Any]:
-        """صورت حساب مشتری"""
+        """Return a customer statement with opening balance and effective dates."""
+        ReportService._validate_date_range(from_date, to_date)
         customer = db.query(Customer).filter(Customer.id == customer_id).first()
         if not customer:
             return {"error": "مشتری پیدا نشد"}
 
-        # بدهی‌ها
         obligations = db.query(FinancialObligation).filter(
             FinancialObligation.customer_id == customer_id,
-            FinancialObligation.is_deleted == False
+            FinancialObligation.is_deleted.is_(False),
+            FinancialObligation.status != ObligationStatus.CANCELLED,
         )
-        if from_date:
-            obligations = obligations.filter(FinancialObligation.created_at >= from_date)
-        if to_date:
-            obligations = obligations.filter(FinancialObligation.created_at <= to_date)
-        obligations = obligations.all()
-
-        # اعتبارات
         credits = db.query(FinancialCredit).filter(
             FinancialCredit.customer_id == customer_id,
-            FinancialCredit.is_deleted == False
+            FinancialCredit.is_deleted.is_(False),
+            FinancialCredit.status == CreditStatus.APPROVED,
         )
+
+        obligation_effective_date = func.coalesce(
+            FinancialObligation.due_date,
+            func.date(FinancialObligation.created_at),
+        )
+        opening_obligations = []
+        opening_credits = []
         if from_date:
-            credits = credits.filter(FinancialCredit.created_at >= from_date)
+            opening_obligations = obligations.filter(
+                obligation_effective_date < from_date
+            ).all()
+            opening_credits = credits.filter(
+                FinancialCredit.credit_date < from_date
+            ).all()
+            obligations = obligations.filter(obligation_effective_date >= from_date)
+            credits = credits.filter(FinancialCredit.credit_date >= from_date)
         if to_date:
-            credits = credits.filter(FinancialCredit.created_at <= to_date)
+            obligations = obligations.filter(obligation_effective_date <= to_date)
+            credits = credits.filter(FinancialCredit.credit_date <= to_date)
+
+        obligations = obligations.all()
         credits = credits.all()
+        opening_debit = sum((o.amount - (o.paid_amount or 0)) for o in opening_obligations)
+        opening_credit = sum(c.amount for c in opening_credits)
+        opening_balance = opening_debit - opening_credit
+        total_obligations = sum((o.amount - (o.paid_amount or 0)) for o in obligations)
+        total_credits = sum(c.amount for c in credits)
 
-        # محاسبه مجموع
-        total_obligations = sum([o.amount - o.paid_amount for o in obligations])
-        total_credits = sum([c.amount for c in credits])
-
-        # ایجاد لیست تراکنش‌ها
         transactions = []
-        for o in obligations:
+        for obligation in obligations:
+            created_at = obligation.created_at
+            effective_date = obligation.due_date or (
+                created_at.date() if hasattr(created_at, "date") else created_at
+            )
             transactions.append({
-                "date": o.created_at,
+                "date": effective_date,
                 "type": "OBLIGATION",
-                "description": o.description or "بدهی",
-                "debit": o.amount - o.paid_amount,
+                "description": obligation.description or "بدهی",
+                "debit": obligation.amount - (obligation.paid_amount or 0),
                 "credit": 0,
-                "balance": 0
+                "balance": 0,
             })
-        for c in credits:
+        for credit in credits:
             transactions.append({
-                "date": c.created_at,
+                "date": credit.credit_date,
                 "type": "CREDIT",
-                "description": c.description or "اعتبار",
+                "description": credit.description or "اعتبار",
                 "debit": 0,
-                "credit": c.amount,
-                "balance": 0
+                "credit": credit.amount,
+                "balance": 0,
             })
 
-        # مرتب‌سازی بر اساس تاریخ
-        transactions.sort(key=lambda x: x["date"])
-
-        # محاسبه مانده
-        running_balance = 0
-        for t in transactions:
-            running_balance += t["debit"] - t["credit"]
-            t["balance"] = running_balance
+        transactions.sort(key=lambda item: item["date"])
+        running_balance = opening_balance
+        for transaction in transactions:
+            running_balance += transaction["debit"] - transaction["credit"]
+            transaction["balance"] = running_balance
 
         return {
             "customer": customer,
             "transactions": transactions,
+            "opening_debit": opening_debit,
+            "opening_credit": opening_credit,
+            "opening_balance": opening_balance,
             "total_obligations": total_obligations,
             "total_credits": total_credits,
-            "net_balance": total_obligations - total_credits,
-            "total_debit": sum([t["debit"] for t in transactions]),
-            "total_credit": sum([t["credit"] for t in transactions])
+            "period_balance": total_obligations - total_credits,
+            "net_balance": running_balance,
+            "total_debit": sum(item["debit"] for item in transactions),
+            "total_credit": sum(item["credit"] for item in transactions),
         }
 
     @staticmethod
@@ -161,67 +193,67 @@ class ReportService:
         from_date: Optional[date] = None,
         to_date: Optional[date] = None
     ) -> Dict[str, Any]:
-        """گزارش حساب بانکی"""
-        account = db.query(BankAccount).filter(BankAccount.id == account_id).first()
+        """Report confirmed bank movements only, in a stable date/id order."""
+        ReportService._validate_date_range(from_date, to_date)
+        account = db.query(BankAccount).filter(
+            BankAccount.id == account_id,
+            BankAccount.is_deleted.is_(False),
+        ).first()
         if not account:
             return {"error": "حساب بانکی پیدا نشد"}
 
-        deposits = db.query(Receipt).filter(
+        deposits_query = db.query(Receipt).filter(
             Receipt.bank_account_id == account_id,
-            Receipt.is_deleted == False
+            Receipt.is_deleted.is_(False),
+            Receipt.status == ReceiptStatus.CONFIRMED,
         )
-        if from_date:
-            deposits = deposits.filter(Receipt.receipt_date >= from_date)
-        if to_date:
-            deposits = deposits.filter(Receipt.receipt_date <= to_date)
-        deposits = deposits.all()
-
-        withdrawals = db.query(Payment).filter(
+        withdrawals_query = db.query(Payment).filter(
             Payment.bank_account_id == account_id,
-            Payment.is_deleted == False
+            Payment.is_deleted.is_(False),
+            Payment.status == PaymentStatus.CONFIRMED,
         )
         if from_date:
-            withdrawals = withdrawals.filter(Payment.payment_date >= from_date)
+            deposits_query = deposits_query.filter(Receipt.receipt_date >= from_date)
+            withdrawals_query = withdrawals_query.filter(Payment.payment_date >= from_date)
         if to_date:
-            withdrawals = withdrawals.filter(Payment.payment_date <= to_date)
-        withdrawals = withdrawals.all()
+            deposits_query = deposits_query.filter(Receipt.receipt_date <= to_date)
+            withdrawals_query = withdrawals_query.filter(Payment.payment_date <= to_date)
 
+        deposits = deposits_query.order_by(Receipt.receipt_date.asc(), Receipt.id.asc()).all()
+        withdrawals = withdrawals_query.order_by(Payment.payment_date.asc(), Payment.id.asc()).all()
         transactions = []
-        for d in deposits:
+        for receipt in deposits:
             transactions.append({
-                "date": d.receipt_date,
-                "description": d.description or "واریز",
+                "date": receipt.receipt_date,
+                "description": receipt.description or "واریز",
                 "type": "DEPOSIT",
-                "amount": d.amount
+                "amount": receipt.amount,
+                "source_id": receipt.id,
             })
-        for w in withdrawals:
+        for payment in withdrawals:
             transactions.append({
-                "date": w.payment_date,
-                "description": w.description or "برداشت",
+                "date": payment.payment_date,
+                "description": payment.description or "برداشت",
                 "type": "WITHDRAWAL",
-                "amount": w.amount
+                "amount": payment.amount,
+                "source_id": payment.id,
             })
 
-        transactions.sort(key=lambda x: x["date"])
-
+        transactions.sort(key=lambda item: (item["date"], item["source_id"]))
         balance = 0
-        for t in transactions:
-            if t["type"] == "DEPOSIT":
-                balance += t["amount"]
-            else:
-                balance -= t["amount"]
-            t["balance"] = balance
+        for transaction in transactions:
+            balance += transaction["amount"] if transaction["type"] == "DEPOSIT" else -transaction["amount"]
+            transaction["balance"] = balance
 
-        total_deposits = sum([t["amount"] for t in transactions if t["type"] == "DEPOSIT"])
-        total_withdrawals = sum([t["amount"] for t in transactions if t["type"] == "WITHDRAWAL"])
-
+        total_deposits = sum(item["amount"] for item in transactions if item["type"] == "DEPOSIT")
+        total_withdrawals = sum(item["amount"] for item in transactions if item["type"] == "WITHDRAWAL")
         return {
             "account": account,
             "transactions": transactions,
             "balance": balance,
             "total_deposits": total_deposits,
             "total_withdrawals": total_withdrawals,
-            "transaction_count": len(transactions)
+            "transaction_count": len(transactions),
         }
 
     @staticmethod
