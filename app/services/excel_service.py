@@ -34,10 +34,10 @@ class ExcelService:
                 ["010002", "رضا احمدی", "9876543210", "09127654321", "", ""],
             ]
         elif import_type == "BANK_STATEMENT":
-            columns = ["تاریخ", "شماره حساب", "مبلغ (ریال)", "نوع", "شماره مرجع", "شرح"]
+            columns = ["تاریخ", "شماره حساب", "مبلغ (ریال)", "نوع", "شماره مرجع", "شرح", "مانده پس از تراکنش (ریال)"]
             sample_data = [
-                ["1404-05-03", "1234567890", "50000000", "DEPOSIT", "REF-001", "واریز نقدی"],
-                ["1404-05-03", "1234567890", "30000000", "WITHDRAWAL", "REF-002", "برداشت"],
+                ["1404-05-03", "1234567890", "50000000", "DEPOSIT", "REF-001", "واریز نقدی", "150000000"],
+                ["1404-05-03", "1234567890", "30000000", "WITHDRAWAL", "REF-002", "برداشت", "120000000"],
             ]
         else:
             columns = ["شماره عضو", "مبلغ (ریال)", "شرح"]
@@ -92,6 +92,7 @@ class ExcelService:
             "شماره عضو": "member_no",
             "نام کامل": "full_name",
             "مبلغ (ریال)": "amount",
+            "مانده پس از تراکنش (ریال)": "balance",
             "شرح": "description",
             "تاریخ": "date",
             "شماره حساب": "account_no",
@@ -115,14 +116,15 @@ class ExcelService:
                     continue
 
                 value = row[persian_col]
-                if english_col == "amount":
+                if english_col in {"amount", "balance"}:
                     try:
                         numeric_amount = float(str(value).replace(",", "").strip())
                         if not numeric_amount.is_integer():
                             raise ValueError("fractional amount")
                         value = int(numeric_amount)
                     except (TypeError, ValueError):
-                        row_errors.append(f"ردیف {row_number}: مبلغ باید عدد صحیح و معتبر باشد")
+                        field_label = "مبلغ" if english_col == "amount" else "مانده"
+                        row_errors.append(f"ردیف {row_number}: {field_label} باید عدد صحیح و معتبر باشد")
                         value = None
                 elif english_col == "date":
                     if isinstance(value, pd.Timestamp):
