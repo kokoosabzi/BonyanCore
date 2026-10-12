@@ -87,6 +87,7 @@ async def save_bulk_import(request: Request, db: Session = Depends(get_db)):
                 "member_no": form.get(f"rows[{i}][member_no]") or None,
                 "full_name": form.get(f"rows[{i}][full_name]") or None,
                 "amount": int(amount_value) if amount_value not in (None, "") else None,
+                "balance": int(form.get(f"rows[{i}][balance]")) if form.get(f"rows[{i}][balance]") not in (None, "") else None,
                 "description": form.get(f"rows[{i}][description]") or None,
                 "date": form.get(f"rows[{i}][date]") or None,
                 "account_no": form.get(f"rows[{i}][account_no]") or None,
