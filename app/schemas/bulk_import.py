@@ -28,6 +28,7 @@ class BulkImportRow(BaseModel):
     member_no: Optional[str] = None
     full_name: Optional[str] = None
     amount: Optional[int] = None
+    balance: Optional[int] = None
     description: Optional[str] = None
     date: Optional[date] = None
     account_no: Optional[str] = None
