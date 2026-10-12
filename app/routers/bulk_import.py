@@ -40,13 +40,14 @@ async def upload_excel(
     project_id: int = Form(...),
     document_date: str = Form(...),
     document_description: str = Form(...),
+    date_calendar: str = Form("jalali"),
     debit_type: Optional[str] = Form(None),
     credit_type: Optional[str] = Form(None),
     db: Session = Depends(get_db)
 ):
     try:
         content = await file.read()
-        rows, errors = ExcelService.parse_excel(content)
+        rows, errors = ExcelService.parse_excel(content, date_calendar=date_calendar)
         total_amount = sum([r.get("amount", 0) or 0 for r in rows])
         return templates.TemplateResponse("bulk_import_preview.html", {
             "request": request,
