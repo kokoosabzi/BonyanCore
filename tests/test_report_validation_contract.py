@@ -55,8 +55,7 @@ def test_customer_statement_balance_matches_obligation_and_payment_ledger():
     from app.models.financial_credit import CreditStatus, CreditType
 
     engine = create_engine("sqlite:///:memory:")
-    tables = [Customer.__table__, FinancialObligation.__table__, FinancialCredit.__table__]
-    Base.metadata.create_all(engine, tables=tables)
+    Base.metadata.create_all(engine)
 
     with Session(engine) as db:
         customer = Customer(customer_no="000101", full_name="Test Customer")
