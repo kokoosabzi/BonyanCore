@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 import inspect
 
 import pytest
@@ -29,3 +29,8 @@ def test_bank_report_counts_confirmed_movements_only():
     assert "ReceiptStatus.CONFIRMED" in source
     assert "PaymentStatus.CONFIRMED" in source
     assert "source_id" in source
+
+
+def test_report_date_range_rejects_datetime_for_date_only_filters():
+    with pytest.raises(ValueError, match="معتبر نیست"):
+        ReportService._validate_date_range(datetime(2025, 7, 25, 12, 0), None)
