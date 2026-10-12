@@ -34,3 +34,8 @@ def test_bank_report_counts_confirmed_movements_only():
 def test_report_date_range_rejects_datetime_for_date_only_filters():
     with pytest.raises(ValueError, match="معتبر نیست"):
         ReportService._validate_date_range(datetime(2025, 7, 25, 12, 0), None)
+
+def test_customer_statement_uses_full_obligation_amount_as_debit():
+    source = inspect.getsource(ReportService.get_customer_statement)
+    assert '"debit": obligation.amount,' in source
+    assert '"debit": obligation.amount - (obligation.paid_amount or 0),' not in source
