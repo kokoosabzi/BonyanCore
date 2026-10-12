@@ -146,7 +146,8 @@ class ReportService:
             obligations = db.query(FinancialObligation).filter(
                 FinancialObligation.customer_id == customer.id,
                 FinancialObligation.project_id == project_id,
-                FinancialObligation.is_deleted == False
+                FinancialObligation.is_deleted.is_(False),
+                FinancialObligation.status != ObligationStatus.CANCELLED,
             ).all()
             credits = db.query(FinancialCredit).filter(
                 FinancialCredit.customer_id == customer.id,
@@ -175,8 +176,10 @@ class ReportService:
         overdue = db.query(FinancialObligation).filter(
             FinancialObligation.project_id == project_id,
             FinancialObligation.due_date < date.today(),
-            FinancialObligation.status != "PAID",
-            FinancialObligation.is_deleted == False
+            FinancialObligation.status.notin_(
+                [ObligationStatus.PAID, ObligationStatus.CANCELLED]
+            ),
+            FinancialObligation.is_deleted.is_(False)
         ).all()
         total_overdue = sum([o.amount - o.paid_amount for o in overdue])
 
