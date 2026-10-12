@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, or_
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Dict, List, Any, Optional
 from app.models import (
     Customer, Project, ProjectMember, Contract,
@@ -22,7 +22,7 @@ class ReportService:
     ) -> None:
         """Validate report boundaries before they are used in a financial query."""
         for value in (from_date, to_date):
-            if value is not None and not isinstance(value, date):
+            if value is not None and (not isinstance(value, date) or isinstance(value, datetime)):
                 raise ValueError("تاریخ فیلتر گزارش معتبر نیست")
         if from_date and to_date and from_date > to_date:
             raise ValueError("تاریخ شروع نمی‌تواند بعد از تاریخ پایان باشد")
