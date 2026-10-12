@@ -465,6 +465,7 @@ class BulkImportService:
                 statement_date=row.date,
                 description=row.description or data.document_description,
                 amount=row.amount,
+                balance=row.balance,
                 statement_type=transaction_type,
                 reference_no=reference_no,
                 is_reconciled=False,
