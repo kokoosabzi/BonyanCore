@@ -58,7 +58,7 @@ def test_parse_excel_reports_invalid_amounts_by_row():
     rows, errors = ExcelService.parse_excel(content, date_calendar="jalali")
 
     assert rows[0]["amount"] is None
-    assert errors == ["ردیف 2: مبلغ نامعتبر است"]
+    assert errors == ["ردیف 2: مبلغ باید عدد صحیح و معتبر باشد"]
 
 def test_parse_excel_rejects_fractional_amounts():
     content = _xlsx([{"تاریخ": "1404/05/03", "مبلغ (ریال)": "100.5"}])
