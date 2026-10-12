@@ -72,10 +72,10 @@ class ReportService:
 
         obligations = obligations.all()
         credits = credits.all()
-        opening_debit = sum((o.amount - (o.paid_amount or 0)) for o in opening_obligations)
+        opening_debit = sum(o.amount for o in opening_obligations)
         opening_credit = sum(c.amount for c in opening_credits)
         opening_balance = opening_debit - opening_credit
-        total_obligations = sum((o.amount - (o.paid_amount or 0)) for o in obligations)
+        total_obligations = sum(o.amount for o in obligations)
         total_credits = sum(c.amount for c in credits)
 
         transactions = []
@@ -88,7 +88,7 @@ class ReportService:
                 "date": effective_date,
                 "type": "OBLIGATION",
                 "description": obligation.description or "بدهی",
-                "debit": obligation.amount - (obligation.paid_amount or 0),
+                "debit": obligation.amount,
                 "credit": 0,
                 "balance": 0,
             })
