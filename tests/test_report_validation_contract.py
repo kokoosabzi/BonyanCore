@@ -44,3 +44,56 @@ def test_project_summary_uses_full_obligations_and_approved_credits():
     source = inspect.getsource(ReportService.get_project_financial_summary)
     assert "total_obligation = sum(o.amount for o in obligations)" in source
     assert "FinancialCredit.status == CreditStatus.APPROVED" in source
+
+def test_customer_statement_balance_matches_obligation_and_payment_ledger():
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+
+    from app.core.database import Base
+    from app.models import Customer, FinancialObligation, FinancialCredit
+    from app.models.financial_obligation import ObligationStatus, ObligationType
+    from app.models.financial_credit import CreditStatus, CreditType
+
+    engine = create_engine("sqlite:///:memory:")
+    tables = [Customer.__table__, FinancialObligation.__table__, FinancialCredit.__table__]
+    Base.metadata.create_all(engine, tables=tables)
+
+    with Session(engine) as db:
+        customer = Customer(customer_no="000101", full_name="Test Customer")
+        db.add(customer)
+        db.flush()
+
+        db.add(FinancialObligation(
+            obligation_no="OBL-TEST-1",
+            customer_id=customer.id,
+            project_id=1,
+            obligation_type=ObligationType.PROJECT_PLAN,
+            amount=100,
+            paid_amount=40,
+            status=ObligationStatus.PARTIAL,
+            due_date=date(2025, 7, 25),
+            description="Test obligation",
+        ))
+        db.add(FinancialCredit(
+            credit_no="CR-TEST-1",
+            customer_id=customer.id,
+            project_id=1,
+            credit_type=CreditType.PAYMENT,
+            amount=40,
+            status=CreditStatus.APPROVED,
+            credit_date=date(2025, 7, 25),
+            description="Partial payment",
+        ))
+        db.commit()
+
+        statement = ReportService.get_customer_statement(db, customer.id)
+
+        assert statement["total_obligations"] == 100
+        assert statement["total_credits"] == 40
+        assert statement["period_balance"] == 60
+        assert statement["net_balance"] == 60
+        assert statement["total_debit"] == 100
+        assert statement["total_credit"] == 40
+        assert [item["balance"] for item in statement["transactions"]] == [100, 60]
+
+    engine.dispose()
