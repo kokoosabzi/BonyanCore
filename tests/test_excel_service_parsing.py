@@ -24,6 +24,7 @@ def test_parse_bank_statement_jalali_text_dates_and_reference():
         "نوع": "DEPOSIT",
         "شماره مرجع": "REF-1",
         "شرح": "واریز",
+        "مانده پس از تراکنش (ریال)": "125,000",
     }])
 
     rows, errors = ExcelService.parse_excel(content, date_calendar="jalali")
@@ -32,6 +33,7 @@ def test_parse_bank_statement_jalali_text_dates_and_reference():
     assert rows[0]["date"] == date(2025, 7, 25)
     assert rows[0]["amount"] == 50000
     assert rows[0]["reference_no"] == "REF-1"
+    assert rows[0]["balance"] == 125000
 
 
 def test_parse_excel_rejects_non_iso_gregorian_dates():
