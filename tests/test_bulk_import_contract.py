@@ -13,3 +13,9 @@ def test_bank_statement_bulk_import_is_dispatched_and_staged_without_committing(
     assert "StatementType" in source
     assert "db.commit()" not in source
     assert "BulkImportType.BANK_STATEMENT" in dispatch
+
+def test_bank_statement_import_rejects_ambiguous_account_numbers():
+    source = inspect.getsource(BulkImportService.process_bank_statement_bulk)
+    assert "matching_accounts" in source
+    assert "len(matching_accounts) > 1" in source
+    assert "چند حساب بانکی مشترک است" in source
