@@ -76,6 +76,16 @@
             <h5 class="mb-0">مرحله ۲: دانلود قالب و آپلود فایل</h5>
         </div>
         <div class="card-body">
+            <div class="row mb-3" id="date_calendar_container" style="display:none;">
+                <div class="col-md-6">
+                    <label class="form-label">تقویم تاریخ‌های فایل صورت‌حساب</label>
+                    <select name="date_calendar" id="date_calendar" class="form-select">
+                        <option value="jalali" selected>شمسی (جلالی، مانند 1404/05/03)</option>
+                        <option value="gregorian">میلادی (ISO، مانند 2025-07-25)</option>
+                    </select>
+                    <small class="text-muted">اگر تاریخ‌ها در Excel به‌صورت سلول تاریخ واقعی هستند، گزینهٔ میلادی را انتخاب کنید.</small>
+                </div>
+            </div>
             <div class="row">
                 <div class="col-md-6">
                     <button type="button" id="downloadTemplateBtn" class="btn btn-outline-primary w-100" disabled>
@@ -110,8 +120,10 @@
         const debitContainer = document.getElementById('debit_type_container');
         const creditContainer = document.getElementById('credit_type_container');
         const downloadBtn = document.getElementById('downloadTemplateBtn');
+        const calendarContainer = document.getElementById('date_calendar_container');
         
         debitContainer.style.display = 'none';
+        calendarContainer.style.display = value === 'BANK_STATEMENT' ? 'block' : 'none';
         creditContainer.style.display = 'none';
         
         if (value === 'DEBIT') {
