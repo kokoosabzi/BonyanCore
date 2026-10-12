@@ -409,14 +409,20 @@ class BulkImportService:
 
             account_no = str(row.account_no).strip()
             reference_no = str(row.reference_no).strip()
-            account = db.query(BankAccount).filter(
+            matching_accounts = db.query(BankAccount).filter(
                 BankAccount.account_no == account_no,
                 BankAccount.is_active.is_(True),
                 BankAccount.is_deleted.is_(False),
-            ).first()
-            if not account:
+            ).all()
+            if not matching_accounts:
                 errors.append(f"ردیف {row_number}: حساب بانکی {account_no} پیدا نشد یا غیرفعال است")
                 continue
+            if len(matching_accounts) > 1:
+                errors.append(
+                    f"ردیف {row_number}: شماره حساب {account_no} بین چند حساب بانکی مشترک است؛ ورود این ردیف رد شد"
+                )
+                continue
+            account = matching_accounts[0]
 
             identity = (account.id, reference_no)
             if identity in seen_references:
