@@ -1,5 +1,5 @@
 import io
-from datetime import date
+from datetime import date, datetime
 
 import pandas as pd
 import pytest
@@ -69,3 +69,24 @@ def test_parse_excel_rejects_fractional_amounts():
 
     assert rows[0]["amount"] is None
     assert errors == ["ردیف 2: مبلغ باید عدد صحیح و معتبر باشد"]
+
+
+def test_parse_excel_accepts_native_excel_dates_when_gregorian_selected():
+    content = _xlsx([{"تاریخ": datetime(2025, 7, 25), "مبلغ (ریال)": 50000}])
+
+    rows, errors = ExcelService.parse_excel(content, date_calendar="gregorian")
+
+    assert errors == []
+    assert rows[0]["date"] == date(2025, 7, 25)
+
+
+def test_parse_excel_rejects_fractional_running_balance():
+    content = _xlsx([{
+        "تاریخ": "1404/05/03",
+        "مانده پس از تراکنش (ریال)": "100.5",
+    }])
+
+    rows, errors = ExcelService.parse_excel(content, date_calendar="jalali")
+
+    assert rows[0]["balance"] is None
+    assert errors == ["ردیف 2: مانده باید عدد صحیح و معتبر باشد"]
