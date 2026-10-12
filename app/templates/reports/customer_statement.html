@@ -114,7 +114,7 @@
                     {% endif %}
                     {% for item in transactions %}
                     <tr>
-                        <td>{{ item.date }}</td>
+                        <td>{{ item.date|jalali }}</td>
                         <td>
                             {% if item.type == 'OBLIGATION' %}
                             <span class="badge bg-danger">بدهی</span>
