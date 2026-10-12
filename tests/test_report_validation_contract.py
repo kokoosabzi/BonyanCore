@@ -44,6 +44,8 @@ def test_project_summary_uses_full_obligations_and_approved_credits():
     source = inspect.getsource(ReportService.get_project_financial_summary)
     assert "total_obligation = sum(o.amount for o in obligations)" in source
     assert "FinancialCredit.status == CreditStatus.APPROVED" in source
+    assert "FinancialObligation.status != ObligationStatus.CANCELLED" in source
+    assert "ObligationStatus.PAID, ObligationStatus.CANCELLED" in source
 
 def test_customer_statement_balance_matches_obligation_and_payment_ledger():
     from sqlalchemy import create_engine
