@@ -151,11 +151,14 @@ class ReportService:
             credits = db.query(FinancialCredit).filter(
                 FinancialCredit.customer_id == customer.id,
                 FinancialCredit.project_id == project_id,
-                FinancialCredit.is_deleted == False
+                FinancialCredit.is_deleted.is_(False),
+                FinancialCredit.status == CreditStatus.APPROVED,
             ).all()
 
-            total_obligation = sum([o.amount - o.paid_amount for o in obligations])
-            total_credit = sum([c.amount for c in credits])
+            # Use ledger movements consistently: full obligation debits and
+            # approved credits (including receipt payments) are separate entries.
+            total_obligation = sum(o.amount for o in obligations)
+            total_credit = sum(c.amount for c in credits)
             balance = total_obligation - total_credit
 
             total_obligations += total_obligation
