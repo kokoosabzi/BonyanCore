@@ -25,13 +25,14 @@ class CreditType(str, Enum):
     OTHER = "OTHER"
 
 class BulkImportRow(BaseModel):
-    member_no: str
+    member_no: Optional[str] = None
     full_name: Optional[str] = None
     amount: Optional[int] = None
     description: Optional[str] = None
-    date: Optional[datetime] = None
+    date: Optional[date] = None
     account_no: Optional[str] = None
     transaction_type: Optional[str] = None
+    reference_no: Optional[str] = None
 
 class BulkImportCreate(BaseModel):
     import_type: BulkImportType
