@@ -18,6 +18,19 @@ from app.utils.jalali import to_jalali, get_today_jalali, parse_jalali_date
 router = APIRouter(prefix="/reports", tags=["Reports"])
 templates = create_templates()
 
+
+def _parse_date_filters(
+    from_date: Optional[str], to_date: Optional[str]
+) -> tuple[Optional[date], Optional[date], Optional[str]]:
+    """Parse Jalali report filters and return validation errors for the UI."""
+    try:
+        parsed_from = parse_jalali_date(from_date)
+        parsed_to = parse_jalali_date(to_date)
+        ReportService._validate_date_range(parsed_from, parsed_to)
+        return parsed_from, parsed_to, None
+    except ValueError as exc:
+        return None, None, str(exc)
+
 # ============================================================
 # داشبورد مالی
 # ============================================================
@@ -47,8 +60,9 @@ async def customer_statement_page(
     customers = CustomerService.get_all(db)
     report_data = {}
 
-    if customer_id:
-        report = ReportService.get_customer_statement(db, customer_id, parse_jalali_date(from_date), parse_jalali_date(to_date))
+    parsed_from, parsed_to, date_error = _parse_date_filters(from_date, to_date)
+    if customer_id and not date_error:
+        report = ReportService.get_customer_statement(db, customer_id, parsed_from, parsed_to)
         if "error" not in report:
             report_data = report
 
@@ -61,6 +75,7 @@ async def customer_statement_page(
             "customer_id": customer_id,
             "from_date": from_date,
             "to_date": to_date,
+            "date_error": date_error,
             **report_data
         }
     )
@@ -72,14 +87,24 @@ async def customer_statement_excel(
     to_date: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
-    report = ReportService.get_customer_statement(db, customer_id, parse_jalali_date(from_date), parse_jalali_date(to_date))
+    parsed_from, parsed_to, date_error = _parse_date_filters(from_date, to_date)
+    if date_error:
+        raise HTTPException(status_code=422, detail=date_error)
+    report = ReportService.get_customer_statement(db, customer_id, parsed_from, parsed_to)
     if "error" in report:
         raise HTTPException(status_code=404, detail=report["error"])
 
-    data = []
+    data = [{
+        "تاریخ": to_jalali(parsed_from) if parsed_from else "",
+        "نوع": "OPENING_BALANCE",
+        "شرح": "مانده ابتدای دوره",
+        "بدهکار": report["opening_debit"],
+        "بستانکار": report["opening_credit"],
+        "مانده": report["opening_balance"],
+    }]
     for t in report["transactions"]:
         data.append({
-            "تاریخ": t["date"],
+            "تاریخ": to_jalali(t["date"]),
             "نوع": t["type"],
             "شرح": t["description"],
             "بدهکار": t["debit"],
@@ -165,18 +190,16 @@ async def bank_report_excel(
     to_date: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
-    report = ReportService.get_bank_report(
-        db,
-        account_id,
-        parse_jalali_date(from_date),
-        parse_jalali_date(to_date),
-    )
+    parsed_from, parsed_to, date_error = _parse_date_filters(from_date, to_date)
+    if date_error:
+        raise HTTPException(status_code=422, detail=date_error)
+    report = ReportService.get_bank_report(db, account_id, parsed_from, parsed_to)
     if "error" in report:
         raise HTTPException(status_code=404, detail=report["error"])
 
     data = [
         {
-            "تاریخ": transaction["date"],
+            "تاریخ": to_jalali(transaction["date"]),
             "نوع": transaction["type"],
             "شرح": transaction["description"],
             "مبلغ": transaction["amount"],
@@ -209,8 +232,9 @@ async def bank_report_page(
     accounts = BankAccountService.get_all(db)
     report_data = {}
 
-    if account_id:
-        report = ReportService.get_bank_report(db, account_id, parse_jalali_date(from_date), parse_jalali_date(to_date))
+    parsed_from, parsed_to, date_error = _parse_date_filters(from_date, to_date)
+    if account_id and not date_error:
+        report = ReportService.get_bank_report(db, account_id, parsed_from, parsed_to)
         if "error" not in report:
             report_data = report
 
@@ -223,6 +247,7 @@ async def bank_report_page(
             "account_id": account_id,
             "from_date": from_date,
             "to_date": to_date,
+            "date_error": date_error,
             **report_data
         }
     )
@@ -240,11 +265,18 @@ async def bank_reconciliation_page(
     accounts = BankAccountService.get_all(db)
     report_data = {}
 
-    if account_id:
+    try:
+        parsed_statement_date = parse_jalali_date(statement_date)
+        date_error = None
+    except ValueError as exc:
+        parsed_statement_date = None
+        date_error = str(exc)
+
+    if account_id and not date_error:
         report = ReportService.get_bank_reconciliation(
             db,
             account_id,
-            parse_jalali_date(statement_date),
+            parsed_statement_date,
         )
         if "error" not in report:
             report_data = report
@@ -257,6 +289,7 @@ async def bank_reconciliation_page(
             "accounts": accounts,
             "account_id": account_id,
             "statement_date": statement_date,
+            "date_error": date_error,
             **report_data
         }
     )
