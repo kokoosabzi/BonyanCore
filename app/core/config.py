@@ -1,10 +1,17 @@
+from pathlib import Path
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DATA_DIR = PROJECT_ROOT / "data"
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    DATABASE_URL: str = "postgresql://bonyan:bonyan123@localhost:5432/bonyan_core"
+    DATABASE_URL: str = "sqlite:///./data/bonyancore.db"
     SECRET_KEY: str = "your-secret-key-change-in-production"
     APP_NAME: str = "Bonyan Core"
     APP_VERSION: str = "0.1.0"
@@ -26,5 +33,6 @@ class Settings(BaseSettings):
         if not self.DEBUG and self.DEFAULT_ADMIN_PASSWORD == "admin":
             raise ValueError("DEFAULT_ADMIN_PASSWORD must be changed when DEBUG is disabled")
         return self
+
 
 settings = Settings()
