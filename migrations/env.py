@@ -1,32 +1,35 @@
-import os
 from logging.config import fileConfig
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
 from alembic import context
+from sqlalchemy import engine_from_config, pool
+from app.core.config import settings
 from app.core.database import Base
-from app.models import *
+from app.models import *  # noqa: F401,F403
 
 config = context.config
-fileConfig(config.config_file_name)
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
 
 target_metadata = Base.metadata
 
+
 def get_url():
-    return os.getenv("DATABASE_URL", "postgresql://bonyan:bonyan123@localhost:5432/bonyan_core")
+    return settings.DATABASE_URL
+
 
 def run_migrations_offline():
-    url = get_url()
     context.configure(
-        url=url,
+        url=get_url(),
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        render_as_batch=get_url().startswith("sqlite"),
     )
     with context.begin_transaction():
         context.run_migrations()
 
+
 def run_migrations_online():
-    configuration = config.get_section(config.config_ini_section)
+    configuration = config.get_section(config.config_ini_section) or {}
     configuration["sqlalchemy.url"] = get_url()
     connectable = engine_from_config(
         configuration,
@@ -36,10 +39,12 @@ def run_migrations_online():
     with connectable.connect() as connection:
         context.configure(
             connection=connection,
-            target_metadata=target_metadata
+            target_metadata=target_metadata,
+            render_as_batch=get_url().startswith("sqlite"),
         )
         with context.begin_transaction():
             context.run_migrations()
+
 
 if context.is_offline_mode():
     run_migrations_offline()
