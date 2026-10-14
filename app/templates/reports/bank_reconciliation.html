@@ -68,6 +68,10 @@ document.querySelectorAll(".reconcile-btn").forEach(function (button) {
             </div>
         </form>
 
+        {% if date_error %}
+        <div class="alert alert-danger" role="alert">{{ date_error }}</div>
+        {% endif %}
+
         {% if account %}
         <!-- اطلاعات حساب -->
         <div class="row mb-4">

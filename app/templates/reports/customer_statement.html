@@ -48,6 +48,10 @@
             </div>
         </form>
 
+        {% if date_error %}
+        <div class="alert alert-danger" role="alert">{{ date_error }}</div>
+        {% endif %}
+
         {% if customer %}
         <!-- اطلاعات مشتری -->
         <div class="row mb-4">
@@ -99,10 +103,18 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% set running_balance = 0 %}
+                    {% if from_date %}
+                    <tr class="table-secondary fw-bold">
+                        <td>{{ from_date }}</td>
+                        <td colspan="2">مانده ابتدای دوره</td>
+                        <td>{{ "{:,.0f}".format(opening_debit) }}</td>
+                        <td>{{ "{:,.0f}".format(opening_credit) }}</td>
+                        <td>{{ "{:,.0f}".format(opening_balance) }}</td>
+                    </tr>
+                    {% endif %}
                     {% for item in transactions %}
                     <tr>
-                        <td>{{ item.date }}</td>
+                        <td>{{ item.date|jalali }}</td>
                         <td>
                             {% if item.type == 'OBLIGATION' %}
                             <span class="badge bg-danger">بدهی</span>

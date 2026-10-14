@@ -40,13 +40,14 @@ async def upload_excel(
     project_id: int = Form(...),
     document_date: str = Form(...),
     document_description: str = Form(...),
+    date_calendar: str = Form("jalali"),
     debit_type: Optional[str] = Form(None),
     credit_type: Optional[str] = Form(None),
     db: Session = Depends(get_db)
 ):
     try:
         content = await file.read()
-        rows, errors = ExcelService.parse_excel(content)
+        rows, errors = ExcelService.parse_excel(content, date_calendar=date_calendar)
         total_amount = sum([r.get("amount", 0) or 0 for r in rows])
         return templates.TemplateResponse("bulk_import_preview.html", {
             "request": request,
@@ -82,13 +83,18 @@ async def save_bulk_import(request: Request, db: Session = Depends(get_db)):
         form = await request.form()
         rows_data = []
         for i in range(int(form.get("row_count", 0))):
-            if form.get(f"rows[{i}][member_no]"):
-                rows_data.append({
-                    "member_no": form.get(f"rows[{i}][member_no]"),
-                    "full_name": form.get(f"rows[{i}][full_name]"),
-                    "amount": int(form.get(f"rows[{i}][amount]", 0)) if form.get(f"rows[{i}][amount]") else None,
-                    "description": form.get(f"rows[{i}][description]")
-                })
+            amount_value = form.get(f"rows[{i}][amount]")
+            rows_data.append({
+                "member_no": form.get(f"rows[{i}][member_no]") or None,
+                "full_name": form.get(f"rows[{i}][full_name]") or None,
+                "amount": int(amount_value) if amount_value not in (None, "") else None,
+                "balance": int(form.get(f"rows[{i}][balance]")) if form.get(f"rows[{i}][balance]") not in (None, "") else None,
+                "description": form.get(f"rows[{i}][description]") or None,
+                "date": form.get(f"rows[{i}][date]") or None,
+                "account_no": form.get(f"rows[{i}][account_no]") or None,
+                "transaction_type": form.get(f"rows[{i}][transaction_type]") or None,
+                "reference_no": form.get(f"rows[{i}][reference_no]") or None,
+            })
         
         data = BulkImportCreate(
             import_type=form.get("import_type"),
